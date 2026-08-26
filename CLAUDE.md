@@ -9,14 +9,19 @@
 별도로 크롤링할 계획은 없으며, 앞으로도 `ai4i2020.csv`가 유일한 데이터 소스입니다.
 
 **모든 `.py`/`.ipynb`/`.csv` 파일은 `src/` 아래에 있습니다** (`src/main.py`, `src/crawler.py`,
-`src/visualizer.py`, `src/EDA.ipynb`, `src/EDA2.ipynb`, `src/ai4i2020.csv`). 아래 본문에서 파일명만
-적었으면 전부 `src/` 아래에 있다는 뜻입니다. `README.md`/`CLAUDE.md`/`docs/`/`images/`/
-`미니 프로젝트 흐름도.png`는 저장소 루트에 그대로 남아 있습니다 — `images/`가 `src/` 밖에 있기 때문에
-`EDA.ipynb`의 `savefig()` 호출은 `"../images/eda_*.png"`처럼 한 단계 위로 올라가는 상대경로를 씁니다.
-앞으로 `preprocessor.py`/`modeling.py` 등 새 모듈을 추가할 때도 `src/` 안에 만드세요.
+`src/visualizer.py`, `src/EDA.ipynb`, `src/EDA2.ipynb`, `src/classifications.ipynb`,
+`src/ai4i2020.csv`). 아래 본문에서 파일명만 적었으면 전부 `src/` 아래에 있다는 뜻입니다.
+`README.md`/`CLAUDE.md`/`docs/`/`images/`/`미니 프로젝트 흐름도.png`는 저장소 루트에 그대로 남아 있습니다
+— `images/`가 `src/` 밖에 있기 때문에 `EDA.ipynb`/`classifications.ipynb`의 `savefig()` 호출은
+`"../images/*.png"`처럼 한 단계 위로 올라가는 상대경로를 씁니다. 앞으로 `preprocessor.py` 등 새 모듈을
+추가할 때도 `src/` 안에 만드세요.
 
 1. **EDA 노트북** (`EDA.ipynb`, `EDA2.ipynb`) — `ai4i2020.csv` 분석. 완료되었으며 `README.md`에 정리되어 있음.
-2. **`main.py`** (Tkinter UI) + **`visualizer.py`** (그래프) + **`crawler.py`** (크롤링)로 모듈이 나뉘어
+2. **`classifications.ipynb`** — `Type`(품질 등급 L/M/H)을 맞히는 다중분류 모델 4종(Random Forest, XGBoost,
+   Logistic Regression, SVM)을 학습·비교하는 노트북. **구현 완료**, 아래 전용 절 참고. `미니 프로젝트
+   흐름도.png`가 정의한 `modeling.py`/`Modeler` 모듈(아래 "목표 파이프라인 모듈" 표)과는 별개입니다 —
+   그쪽은 여전히 미구현·보류 상태이며, 이 노트북은 `EDA.ipynb`/`EDA2.ipynb`처럼 분석용 산출물입니다.
+3. **`main.py`** (Tkinter UI) + **`visualizer.py`** (그래프) + **`crawler.py`** (크롤링)로 모듈이 나뉘어
    있습니다. 오른쪽 패널은 네이버 뉴스 크롤러이지만, **더 이상 무관한 고정 검색어가 아니라 왼쪽 그래프
    카드가 알려주는 EDA 인사이트로 검색어가 바뀝니다** — 예: "세부 고장 모드별 발생 건수" 카드를 클릭하면
    `"CNC 방열 고장"`(실제 데이터에서 가장 흔한 고장 모드)으로 재검색됩니다. "크롤링이 우리 EDA 결과를
@@ -25,14 +30,15 @@
    패널의 **"전체 데이터 한 눈에 보기" 화면은 구현 완료**되어 `ai4i2020.csv`를 요약 카드 4개 + 그래프
    12개로 렌더링합니다. "모델 훈련 결과 보기"와 "모델 입력하기" → 예측 연동은 아직 자리표시자
    (placeholder) 상태입니다 (아래 절 참고).
-3. **`미니 프로젝트 흐름도.png`** — 원래 구상했던 더 큰 파이프라인
+4. **`미니 프로젝트 흐름도.png`** — 원래 구상했던 더 큰 파이프라인
    ("현대오토에버 제조데이터 미니 프로젝트 (분류/회귀)")의 흐름도 스펙: 크롤링 → 전처리 → 시각화(EDA) →
    리터러시(Q→A) → 모델링(분류/회귀) → 평가 → 저장 → 보고서, `crawler.py`/`preprocessor.py`/`visualizer.py`/
-   `literacy.py`/`modeling.py`/`evaluation.py`/`report.py` 모듈 포함. **프로젝트 결정에 따라 전처리/모델링/평가/
-   저장/보고서 단계(및 크롤링 단계)는 나중으로 미룹니다** — 현재 작업 범위는 EDA/전체 데이터 보기 패널로
-   한정합니다. 아래 모듈/함수 이름은 나중에 해당 작업을 재개할 때 참고용으로 남겨둔 것이며, 미리 앞서서
-   만들 필요는 없습니다.
-4. **`docs/troubleshooting.md`** — 이 프로젝트의 진행형 트러블슈팅 기록입니다. **작업 중 실제 에러/이슈를
+   `literacy.py`/`modeling.py`/`evaluation.py`/`report.py` 모듈 포함. **프로젝트 결정에 따라 전처리/평가/
+   저장/보고서 단계(및 크롤링 단계)는 나중으로 미룹니다** — `classifications.ipynb`로 모델링(분류)
+   비교는 이미 진행했지만, 이는 흐름도가 정의한 `modeling.py`/`Modeler` 모듈 자체를 구현한 것은 아닙니다.
+   아래 모듈/함수 이름은 나중에 `modeling.py` 등을 재개할 때 참고용으로 남겨둔 것이며, 미리 앞서서 만들
+   필요는 없습니다.
+5. **`docs/troubleshooting.md`** — 이 프로젝트의 진행형 트러블슈팅 기록입니다. **작업 중 실제 에러/이슈를
    겪고 해결했다면 행을 추가하세요**: 발생 단계 / 에러·이슈 내용 / 원인 / 해결 방법 / 예방 대책. 흐름도
    이미지의 "에러/이슈 정리" 표 형식을 그대로 따릅니다.
 
@@ -42,11 +48,16 @@
 
 ```bash
 # 환경 설정 (저장소에 venv/가 이미 있음; 필요 시 재생성)
-pip install pandas numpy matplotlib seaborn jupyter
+# 주의: `pip`가 PATH상 Anaconda 것을 먼저 찾아 venv가 아닌 곳에 설치될 수 있으니
+# (docs/troubleshooting.md 참고) 반드시 venv의 python -m pip로 설치할 것
+./venv/Scripts/python -m pip install pandas numpy matplotlib seaborn jupyter scikit-learn xgboost
 
 # 메인 EDA 노트북을 처음부터 끝까지 재실행 (저장소 루트의 images/*.png를 재생성함;
 # nbconvert는 기본적으로 노트북이 있는 폴더(src/)를 작업 디렉터리로 실행한다)
 jupyter nbconvert --to notebook --execute --inplace src/EDA.ipynb
+
+# Type(L/M/H) 분류 모델 비교 노트북 재실행 (images/model_*.png를 재생성함)
+jupyter nbconvert --to notebook --execute --inplace src/classifications.ipynb
 
 # Tkinter 앱 실행 (저장소 루트에서 실행. 네이버 뉴스 크롤링을 위해 인터넷 연결 필요)
 python src/main.py
@@ -73,6 +84,33 @@ python src/main.py
     (불일치 27건) — 원본 라벨링이 100% 결정론적이지 않으며, 특히 `RNF`가 그러함.
   - 고장 예측에 가장 유효한 변수: `Torque` > `Tool wear` > `Air temperature`; 제품 `Type` 등급이 높을수록
     고장률이 낮아짐 (L 3.92% > M 2.77% > H 2.09%).
+
+### `src/classifications.ipynb` — `Type`(품질 등급) 분류 모델 4종 비교
+`ai4i2020.csv`의 센서값(`Air/Process temperature`, `Rotational speed`, `Torque`, `Tool wear`)과
+`Machine failure`/세부 고장 모드(`TWF`/`HDF`/`PWF`/`OSF`/`RNF`)로 `Type`(L/M/H)을 예측하는 다중분류
+문제를 다룹니다. `UDI`/`Product ID`는 식별자라 특성에서 제외했습니다.
+
+- **전처리**: `EDA2.ipynb`와 동일하게 컬럼명과 `Type`/`Product ID`의 앞뒤 공백을 strip. 특성 컬럼명은
+  `Air_temperature`처럼 대괄호/공백을 제거한 이름으로 다시 rename합니다 — XGBoost의 `DMatrix`가 컬럼명에
+  `[`, `]`, `<` 문자를 허용하지 않기 때문(`docs/troubleshooting.md` 참고). 타겟은 `LabelEncoder`로 L/M/H를
+  0/1/2로 인코딩.
+- **모델 4종**: `RandomForestClassifier`, `XGBClassifier`, `LogisticRegression`, `SVC(probability=True)`.
+  `Type` 분포가 L(60%)/M(30%)/H(10%)로 치우쳐 있어 `class_weight="balanced"`(XGBoost는
+  `compute_sample_weight`로 만든 `sample_weight`)를 적용. `LogisticRegression`/`SVC`는 `StandardScaler`로
+  표준화한 데이터를, `RandomForestClassifier`/`XGBClassifier`는 원본 스케일 데이터를 사용합니다(트리
+  기반 모델은 스케일링이 불필요).
+- **평가지표**: 정확도, 정밀도/재현율/F1-score(전부 `average="macro"`, 3-클래스 다중분류라서), AUC는
+  `roc_auc_score(..., multi_class="ovr", average="macro")`. 모델별 `classification_report`와 혼동행렬도
+  같이 출력합니다.
+- **그래프**: 모델별 ROC Curve(2x2 서브플롯, 클래스별 One-vs-Rest 곡선 + macro-average 곡선)를
+  `../images/model_roc_curves.png`에, 모델별 F1-score(macro) 비교 막대그래프를
+  `../images/model_f1_comparison.png`에 저장.
+- **핵심 결과(실행해서 확인한 값, 재실행하면 랜덤성 때문에 약간 달라질 수 있음)**: F1(macro) 기준
+  Random Forest(0.325) > XGBoost(0.322) > Logistic Regression(0.232) > SVM(0.219), AUC(macro)는 전
+  모델이 0.48~0.51로 **사실상 랜덤 수준**입니다. 즉 이 데이터셋에서 센서값·고장 정보만으로는 `Type`(품질
+  등급)을 유의미하게 예측하지 못합니다 — `Type`이 가동 중 센서 측정값과 직접적 인과관계가 없는
+  식별자성 라벨에 가깝다는 뜻으로 해석됩니다. 이후 이 노트북을 고치거나 새 모델링 코드를 짤 때 "특성을
+  더 정교하게 손보면 이 결과가 크게 개선될 것"이라고 가정하지 말고, 먼저 이 결론(약한 신호)을 참고하세요.
 
 ### `src/main.py` — Tkinter 데스크톱 UI 셸 (UI 전용, 크롤링/그래프 내용은 모른다)
 하나의 `Frame` 안에서 `grid`로 좌/우를 나눈 단일 파일 앱입니다. **`main.py`는 위젯 조립만 담당하고, "무엇을

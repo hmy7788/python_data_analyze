@@ -82,9 +82,23 @@ L(60%) > M(30%) > H(10%) 순으로 구성.
 5. 세부 고장 모드와 최종 라벨(`Machine failure`) 간 일부 불일치가 있어 라벨 정제가 필요할 수 있음
 6. 제품 품질 등급(`Type`)이 낮을수록 고장 위험이 높음 — 등급별 예측 모델 분리 또는 파생 피처로 활용 가능
 
+## Type(품질 등급) 분류 모델 비교
+
+`Type`(L/M/H)을 센서값·고장 정보로 예측하는 분류 모델 4종(Random Forest, XGBoost, Logistic Regression,
+SVM)을 학습·비교한 노트북: [`src/classifications.ipynb`](src/classifications.ipynb)
+
+F1-score(macro) 기준 Random Forest(0.325) > XGBoost(0.322) > Logistic Regression(0.232) > SVM(0.219)였고,
+AUC(macro, OvR)는 전 모델이 0.48~0.51로 사실상 랜덤 수준이었다. 즉 센서값·고장 정보만으로는 `Type`을
+유의미하게 예측하지 못한다 — `Type`은 가동 중 측정값과 직접적 인과관계가 없는 식별자성 라벨에 가깝다는
+뜻으로 해석된다.
+
+![roc curves](images/model_roc_curves.png)
+![f1 comparison](images/model_f1_comparison.png)
+
 ## 실행 방법
 
 ```bash
-pip install pandas numpy matplotlib seaborn jupyter
+pip install pandas numpy matplotlib seaborn jupyter scikit-learn xgboost
 jupyter nbconvert --to notebook --execute --inplace src/EDA.ipynb
+jupyter nbconvert --to notebook --execute --inplace src/classifications.ipynb
 ```
