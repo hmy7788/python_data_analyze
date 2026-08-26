@@ -87,10 +87,14 @@ L(60%) > M(30%) > H(10%) 순으로 구성.
 `Type`(L/M/H)을 센서값·고장 정보로 예측하는 분류 모델 4종(Random Forest, XGBoost, Logistic Regression,
 SVM)을 학습·비교한 노트북: [`src/classifications.ipynb`](src/classifications.ipynb)
 
-F1-score(macro) 기준 Random Forest(0.325) > XGBoost(0.322) > Logistic Regression(0.232) > SVM(0.219)였고,
-AUC(macro, OvR)는 전 모델이 0.48~0.51로 사실상 랜덤 수준이었다. 즉 센서값·고장 정보만으로는 `Type`을
+센서값 원본 특성에 더해 물리적으로 그럴듯한 파생변수 4개(`Temp_diff`, `Power`, `Torque_x_ToolWear`,
+`Failure_mode_count`)도 만들어 같이 넣어봤다. F1-score(macro) 기준 XGBoost(0.328) > Random
+Forest(0.325) > Logistic Regression(0.233) > SVM(0.218)였고, AUC(macro, OvR)는 전 모델이 0.48~0.51로
+파생변수를 넣기 전과 거의 같은 수준(사실상 랜덤)이었다. 즉 특성을 더 정교하게 만들어도 `Type`을
 유의미하게 예측하지 못한다 — `Type`은 가동 중 측정값과 직접적 인과관계가 없는 식별자성 라벨에 가깝다는
-뜻으로 해석된다.
+뜻으로 해석된다. 다만 Random Forest 특성 중요도에서는 `Power`/`Torque_x_ToolWear`가 원본 변수 각각보다
+오히려 더 중요하게 나와, 모델이 원본보다 파생변수 쪽에서 조금 더 많은 정보를 뽑아내긴 했다(그래도
+전체 성능을 끌어올릴 정도는 아님).
 
 ![roc curves](images/model_roc_curves.png)
 ![f1 comparison](images/model_f1_comparison.png)

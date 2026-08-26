@@ -94,6 +94,11 @@ python src/main.py
   `Air_temperature`처럼 대괄호/공백을 제거한 이름으로 다시 rename합니다 — XGBoost의 `DMatrix`가 컬럼명에
   `[`, `]`, `<` 문자를 허용하지 않기 때문(`docs/troubleshooting.md` 참고). 타겟은 `LabelEncoder`로 L/M/H를
   0/1/2로 인코딩.
+- **파생변수 4개**: `Temp_diff`(`Process_temperature`−`Air_temperature`, 온도차 — HDF 판정 기준과 연결),
+  `Power`(`Torque`×`Rotational_speed`를 rad/s로 환산한 기계 동력[W] — 회전속도/토크의 강한 역상관을
+  하나의 신호로 압축), `Torque_x_ToolWear`(`Torque`×`Tool_wear` — OSF 과부하 판정 임계값이 Type별로
+  다르다는 점(L=11,000/M=12,000/H=13,000)에 착안), `Failure_mode_count`(TWF+HDF+PWF+OSF+RNF 합, 동시
+  발생한 고장 모드 개수). 행 단위 결정론적 변환이라 train/test 분리 전에 만들어도 데이터 누수가 아님.
 - **모델 4종**: `RandomForestClassifier`, `XGBClassifier`, `LogisticRegression`, `SVC(probability=True)`.
   `Type` 분포가 L(60%)/M(30%)/H(10%)로 치우쳐 있어 `class_weight="balanced"`(XGBoost는
   `compute_sample_weight`로 만든 `sample_weight`)를 적용. `LogisticRegression`/`SVC`는 `StandardScaler`로
@@ -105,12 +110,17 @@ python src/main.py
 - **그래프**: 모델별 ROC Curve(2x2 서브플롯, 클래스별 One-vs-Rest 곡선 + macro-average 곡선)를
   `../images/model_roc_curves.png`에, 모델별 F1-score(macro) 비교 막대그래프를
   `../images/model_f1_comparison.png`에 저장.
-- **핵심 결과(실행해서 확인한 값, 재실행하면 랜덤성 때문에 약간 달라질 수 있음)**: F1(macro) 기준
-  Random Forest(0.325) > XGBoost(0.322) > Logistic Regression(0.232) > SVM(0.219), AUC(macro)는 전
-  모델이 0.48~0.51로 **사실상 랜덤 수준**입니다. 즉 이 데이터셋에서 센서값·고장 정보만으로는 `Type`(품질
-  등급)을 유의미하게 예측하지 못합니다 — `Type`이 가동 중 센서 측정값과 직접적 인과관계가 없는
-  식별자성 라벨에 가깝다는 뜻으로 해석됩니다. 이후 이 노트북을 고치거나 새 모델링 코드를 짤 때 "특성을
-  더 정교하게 손보면 이 결과가 크게 개선될 것"이라고 가정하지 말고, 먼저 이 결론(약한 신호)을 참고하세요.
+- **핵심 결과(실행해서 확인한 값, 재실행하면 랜덤성 때문에 약간 달라질 수 있음)**: 파생변수 포함 기준
+  F1(macro)은 XGBoost(0.328) > Random Forest(0.325) > Logistic Regression(0.233) > SVM(0.218),
+  AUC(macro)는 Random Forest(0.509) > XGBoost(0.503) > Logistic Regression(0.497) > SVM(0.478)로 전
+  모델이 **사실상 랜덤 수준**입니다(파생변수를 추가하기 전과 거의 동일 — F1/AUC 모두 소수점 둘째 자리
+  안에서만 오르내림). 즉 물리적으로 그럴듯한 파생변수를 넣어도 `Type`(품질 등급) 예측력은 거의 개선되지
+  않습니다 — `Type`이 가동 중 센서 측정값과 직접적 인과관계가 없는 식별자성 라벨에 가깝다는 뜻으로
+  해석됩니다. 다만 Random Forest 특성 중요도에서는 `Power`/`Torque_x_ToolWear`가 이들을 만든 원본
+  변수(`Rotational_speed`/`Torque`/`Tool_wear`)보다 오히려 더 높게 나와, 파생변수가 원본보다 정보를 조금
+  더 압축해서 담고 있다는 점은 확인됩니다(전체 성능 개선으로 이어질 정도는 아님). 이후 이 노트북을
+  고치거나 새 모델링 코드를 짤 때 "특성을 더 정교하게 손보면 이 결과가 크게 개선될 것"이라고 가정하지
+  말고, 먼저 이 결론(약한 신호)을 참고하세요.
 
 ### `src/main.py` — Tkinter 데스크톱 UI 셸 (UI 전용, 크롤링/그래프 내용은 모른다)
 하나의 `Frame` 안에서 `grid`로 좌/우를 나눈 단일 파일 앱입니다. **`main.py`는 위젯 조립만 담당하고, "무엇을
