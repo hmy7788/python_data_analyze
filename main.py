@@ -22,6 +22,16 @@ MODEL_INPUT_NAMES = (
     "torque",
     "tool_wear",
 )
+# 입력 필드 위에 표시할 한글 라벨. MODEL_INPUT_NAMES의 실제 변수명(모델 전달용)은 그대로 두고
+# 화면에 보이는 텍스트만 한글로 바꾼다.
+MODEL_INPUT_LABELS = {
+    "type": "품질 등급",
+    "air_temp": "기온",
+    "proc_temp": "공정온도",
+    "rot_speed": "회전속도",
+    "torque": "토크",
+    "tool_wear": "공구 마모",
+}
 
 
 class NewsDashboard(tk.Tk):
@@ -159,35 +169,7 @@ class NewsDashboard(tk.Tk):
             )
             self.nav_buttons.append(button)
 
-        # MODEL_INPUT_NAMES의 순서대로 라벨과 입력칸 6개를 생성한다.
-        input_row = tk.Frame(left_content, bg="#FFFFFF")
-        input_row.pack(fill="x", pady=(14, 22))
-        for column, variable_name in enumerate(MODEL_INPUT_NAMES):
-            input_row.grid_columnconfigure(column, weight=1, uniform="inputs")
-
-            input_group = tk.Frame(input_row, bg="#FFFFFF")
-            input_group.grid(
-                row=0,
-                column=column,
-                sticky="ew",
-                padx=(0 if column == 0 else 4, 0 if column == 5 else 4),
-            )
-
-            tk.Label(
-                input_group,
-                text=variable_name,
-                font=("Arial", 8),
-                fg=self.SUBTEXT,
-                bg="#FFFFFF",
-            ).pack(anchor="w", pady=(0, 4))
-
-            input_field = ttk.Entry(
-                input_group,
-                textvariable=self.model_input_vars[variable_name],
-                font=("맑은 고딕", 10),
-            )
-            input_field.pack(fill="x", ipady=6)
-            self.filter_inputs.append(input_field)
+        # 입력 필드 6개는 "모델 입력하기" 탭에서만 데이터 박스 안에 그려진다 (_show_model_input_view 참고).
 
         # 선택한 메뉴의 데이터를 표시할 공간. 현재는 요청대로 비워 둔다.
         self.data_box = tk.Frame(
@@ -276,8 +258,8 @@ class NewsDashboard(tk.Tk):
         elif selected_index == 1:
             self._show_training_result_view()
         elif selected_index == 2:
-            # 세 번째 '모델 입력하기' 버튼을 누른 시점의 Entry 값들을 저장한다.
-            self._save_model_inputs()
+            # 입력 필드는 이 탭에서만 보인다. 저장은 폼 안의 버튼을 눌러야 실행된다.
+            self._show_model_input_view()
 
     def _clear_data_box(self):
         """메뉴를 전환하기 전에 데이터 박스에 표시된 기존 내용을 지운다."""
@@ -534,8 +516,68 @@ class NewsDashboard(tk.Tk):
             bg="#FAFBFC",
         ).place(relx=0.5, rely=0.5, anchor="center")
 
+    def _show_model_input_view(self):
+        """'모델 입력하기' 탭 화면을 구성한다. 입력 필드 6개는 이 탭에서만 보인다."""
+        self._clear_data_box()
+
+        container = tk.Frame(self.data_box, bg="#FAFBFC")
+        container.pack(fill="both", expand=True, padx=18, pady=18)
+
+        tk.Label(
+            container,
+            text="모델 입력 데이터",
+            font=("맑은 고딕", 13, "bold"),
+            fg=self.TEXT,
+            bg="#FAFBFC",
+        ).pack(anchor="w", pady=(0, 14))
+
+        # MODEL_INPUT_NAMES의 순서대로 한글 라벨과 입력칸 6개를 생성한다.
+        input_row = tk.Frame(container, bg="#FAFBFC")
+        input_row.pack(fill="x")
+        self.filter_inputs = []
+        for column, variable_name in enumerate(MODEL_INPUT_NAMES):
+            input_row.grid_columnconfigure(column, weight=1, uniform="inputs")
+
+            input_group = tk.Frame(input_row, bg="#FAFBFC")
+            input_group.grid(
+                row=0,
+                column=column,
+                sticky="ew",
+                padx=(0 if column == 0 else 4, 0 if column == 5 else 4),
+            )
+
+            tk.Label(
+                input_group,
+                text=MODEL_INPUT_LABELS[variable_name],
+                font=("맑은 고딕", 9),
+                fg=self.SUBTEXT,
+                bg="#FAFBFC",
+            ).pack(anchor="w", pady=(0, 4))
+
+            input_field = ttk.Entry(
+                input_group,
+                textvariable=self.model_input_vars[variable_name],
+                font=("맑은 고딕", 10),
+            )
+            input_field.pack(fill="x", ipady=6)
+            self.filter_inputs.append(input_field)
+
+        ttk.Button(
+            container,
+            text="입력값 저장",
+            style="Refresh.TButton",
+            command=self._save_model_inputs,
+        ).pack(anchor="w", pady=(16, 18))
+
+        tk.Frame(container, height=1, bg=self.BORDER).pack(fill="x", pady=(0, 16))
+
+        # 저장 결과를 다시 그릴 수 있도록 요약 영역을 별도 Frame으로 떼어둔다.
+        self._model_input_summary_area = tk.Frame(container, bg="#FAFBFC")
+        self._model_input_summary_area.pack(fill="both", expand=True)
+        self._render_model_input_summary()
+
     def _save_model_inputs(self):
-        """6개 Entry 값을 이름에 맞춰 모델 입력 변수로 저장한다."""
+        """6개 Entry 값을 이름에 맞춰 모델 입력 변수로 저장한다. '입력값 저장' 버튼에서 호출된다."""
         self.model_input_values = {
             name: self.model_input_vars[name].get().strip()
             for name in MODEL_INPUT_NAMES
@@ -545,38 +587,36 @@ class NewsDashboard(tk.Tk):
         for name, value in self.model_input_values.items():
             setattr(self, name, value)
 
-        self._show_model_input_view(self.model_input_values)
+        self._render_model_input_summary()
         self._on_model_input_saved(self.model_input_values.copy())
 
-    def _show_model_input_view(self, values):
-        """저장된 모델 입력값 6개를 데이터 박스에 표시한다."""
-        self._clear_data_box()
-
-        result_area = tk.Frame(self.data_box, bg="#FAFBFC")
-        result_area.place(relx=0.5, rely=0.5, anchor="center")
+    def _render_model_input_summary(self):
+        """현재 self.model_input_values를 요약 영역(_model_input_summary_area)에 다시 그린다."""
+        for widget in self._model_input_summary_area.winfo_children():
+            widget.destroy()
 
         tk.Label(
-            result_area,
-            text="입력된 모델 데이터",
-            font=("맑은 고딕", 15, "bold"),
+            self._model_input_summary_area,
+            text="저장된 입력값",
+            font=("맑은 고딕", 11, "bold"),
             fg=self.TEXT,
             bg="#FAFBFC",
-        ).grid(row=0, column=0, columnspan=2, pady=(0, 18))
+        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 10))
 
         # 변수명과 입력값을 한 행씩 나란히 표시한다.
         for row, name in enumerate(MODEL_INPUT_NAMES, start=1):
             tk.Label(
-                result_area,
-                text=name,
-                font=("Arial", 10, "bold"),
+                self._model_input_summary_area,
+                text=MODEL_INPUT_LABELS[name],
+                font=("맑은 고딕", 10, "bold"),
                 fg=self.SUBTEXT,
                 bg="#FAFBFC",
                 width=13,
                 anchor="e",
             ).grid(row=row, column=0, sticky="e", padx=(0, 16), pady=4)
             tk.Label(
-                result_area,
-                text=values[name] or "(입력 없음)",
+                self._model_input_summary_area,
+                text=self.model_input_values.get(name) or "(입력 없음)",
                 font=("맑은 고딕", 11),
                 fg=self.TEXT,
                 bg="#FAFBFC",

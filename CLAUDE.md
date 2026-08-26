@@ -118,13 +118,21 @@ python main.py
       — 새로운 클릭형 위젯을 추가할 때 이 패턴을 참고하세요.
   - `_show_training_result_view()`는 아직 `[모델 훈련 결과 화면 연결 위치]` 주석이 달린 자리표시자입니다 —
     위 프로젝트 결정에 따라 모델링/평가와 함께 나중으로 미룹니다.
-  - `MODEL_INPUT_NAMES = ("type", "air_temp", "proc_temp", "rot_speed", "torque", "tool_wear")`는 6개
-    입력 `Entry`의 배치 순서이자 이후 모델에 전달될 변수명이므로, 학습된 모델이 기대하는 피처 순서와 반드시
-    맞춰야 합니다.
-  - `_save_model_inputs()`는 6개 입력값을 `self.model_input_values`에 담고 `self.<name>` 속성에도 동일한
-    값을 반영한 뒤 `_on_model_input_saved()`를 호출합니다 — 실제 `model.predict(...)` 호출을 연결할 지점으로
-    표시되어 있으며(`# Data 모델링 팀이 예측 함수 호출 코드를 연결할 위치다`), 현재는 값을 `print()`만 합니다.
-    모델링 단계로 미룬 상태입니다.
+  - **입력 `Entry` 6개는 "모델 입력하기" 탭에서만 보인다.** 예전에는 `_build_ui()`가 `input_row`를
+    좌측 상단에 고정으로 항상 그렸지만, 지금은 그 자리에 아무것도 없고 `_show_model_input_view()`가
+    `selected_index == 2`일 때만 `self.data_box` 안에 폼을 새로 그립니다. `MODEL_INPUT_NAMES =
+    ("type", "air_temp", "proc_temp", "rot_speed", "torque", "tool_wear")`는 여전히 배치 순서이자 모델에
+    전달될 실제 변수명(영문 유지 — 모델 피처 순서와 맞춰야 함)이고, **화면에 보이는 라벨만**
+    `MODEL_INPUT_LABELS`(예: `"air_temp"` → `"기온"`) 딕셔너리로 한글로 표시합니다. 새 입력 필드를
+    추가하면 `MODEL_INPUT_NAMES`뿐 아니라 `MODEL_INPUT_LABELS`에도 한글 라벨을 같이 채워야 합니다.
+  - 이 탭의 흐름: `_show_model_input_view()`가 폼 + "입력값 저장" 버튼 + 요약 영역
+    (`self._model_input_summary_area`)을 그리고, 버튼을 누르면(탭 전환 시 자동 저장이 아님)
+    `_save_model_inputs()`가 6개 입력값을 `self.model_input_values`에 담고 `self.<name>` 속성에도 동일한
+    값을 반영한 뒤 `_render_model_input_summary()`로 요약을 다시 그리고 `_on_model_input_saved()`를
+    호출합니다 — 실제 `model.predict(...)` 호출을 연결할 지점으로 표시되어 있으며
+    (`# Data 모델링 팀이 예측 함수 호출 코드를 연결할 위치다`), 현재는 값을 `print()`만 합니다. 모델링
+    단계로 미룬 상태입니다. 입력값은 `self.model_input_vars`(탭 전환과 무관하게 살아있는
+    `tk.StringVar`)에 보관되므로, 저장하지 않고 다른 탭에 갔다 와도 입력하던 값은 유지됩니다.
 
 ### `visualizer.py` — 그래프 전용 모듈 (Tkinter를 모른다)
 `ai4i2020.csv`를 `matplotlib`으로 그리는 로직만 담당하며, Tkinter는 import조차 하지 않습니다. 흐름도가
