@@ -609,9 +609,20 @@ class NewsDashboard(tk.Tk):
         """뉴스 크롤링 결과를 메인 UI 스레드에 전달한다."""
         try:
             news_items = self._crawler.fetch_news_items()
-            self.after(0, self._show_news, news_items)
+            self._schedule_on_ui_thread(self._show_news, news_items)
         except CRAWL_ERRORS as error:
-            self.after(0, self._show_error, str(error))
+            self._schedule_on_ui_thread(self._show_error, str(error))
+
+    def _schedule_on_ui_thread(self, callback, *args):
+        """백그라운드 스레드 결과를 메인 스레드에 안전하게 전달한다.
+
+        크롤링이 끝나기 전에 사용자가 창을 닫으면 self.after() 호출 시점에 Tk 인터프리터가
+        이미 종료돼 있어 RuntimeError가 난다. 창이 닫힌 뒤 뒤늦게 도착한 결과는 조용히 버린다.
+        """
+        try:
+            self.after(0, callback, *args)
+        except (RuntimeError, tk.TclError):
+            pass
 
     def _show_news(self, news_items):
         """크롤링한 제목을 카드에 표시하고 클릭 링크를 연결한다."""
