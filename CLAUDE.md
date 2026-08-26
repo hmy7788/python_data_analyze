@@ -72,7 +72,7 @@ python src/main.py
   `"../images/eda_*.png"` 형태의 상대경로를 씁니다 — `images/` 폴더를 옮기거나 노트북을 다른 곳으로
   옮기면 이 상대경로도 같이 고쳐야 합니다.
 - `src/EDA2.ipynb`는 같은 데이터셋으로 컬럼 선택/그룹핑/정렬/시각화 연습에 초점을 맞춘 2차 노트북이며
-  (노트북 맨 앞 markdown 셀 참고), 저장소 루트의 `EDA2.html`로 export되어 있습니다.
+  (노트북 맨 앞 markdown 셀 참고), `src/EDA2.html`로 export되어 있습니다.
 - `src/ai4i2020.csv`(10,000행 × 14열)는 결측치·중복행이 없지만, `Type`과 `Product ID`에 앞뒤 공백이 섞여
   있어 groupby/join 전에 반드시 strip해야 합니다 (`EDA2.ipynb` 초반의 `.str.strip()` 호출 참고).
 - 이후 모델링 작업에 참고해야 할 분석 결과(`README.md` 기준):
