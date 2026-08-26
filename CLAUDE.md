@@ -10,10 +10,14 @@
 
 1. **EDA 노트북** (`EDA.ipynb`, `EDA2.ipynb`) — `ai4i2020.csv` 분석. 완료되었으며 `README.md`에 정리되어 있음.
 2. **`main.py`** (Tkinter UI) + **`visualizer.py`** (그래프) + **`crawler.py`** (크롤링)로 모듈이 나뉘어
-   있습니다. 오른쪽 패널은 (이 주제와는 무관하게 기존에 있던) "CNC 불량" 네이버 뉴스 크롤러이며, 실제 수집
-   로직은 `crawler.py`의 `DataCrawler`에 있습니다. 왼쪽 패널의 **"전체 데이터 한 눈에 보기" 화면은 구현
-   완료**되어 `ai4i2020.csv`를 요약 카드 4개 + 그래프 12개로 렌더링합니다. "모델 훈련 결과 보기"와 "모델
-   입력하기" → 예측 연동은 아직 자리표시자(placeholder) 상태입니다 (아래 절 참고).
+   있습니다. 오른쪽 패널은 네이버 뉴스 크롤러이지만, **더 이상 무관한 고정 검색어가 아니라 왼쪽 그래프
+   카드가 알려주는 EDA 인사이트로 검색어가 바뀝니다** — 예: "세부 고장 모드별 발생 건수" 카드를 클릭하면
+   `"CNC 방열 고장"`(실제 데이터에서 가장 흔한 고장 모드)으로 재검색됩니다. "크롤링이 우리 EDA 결과를
+   실제 업계 뉴스로 뒷받침/검증해 보는" 용도로 자리를 잡았다는 점이 중요합니다 — 자세한 설계는 아래
+   `main.py`/`visualizer.py` 절 참고. 실제 수집 로직은 `crawler.py`의 `DataCrawler`에 있습니다. 왼쪽
+   패널의 **"전체 데이터 한 눈에 보기" 화면은 구현 완료**되어 `ai4i2020.csv`를 요약 카드 4개 + 그래프
+   12개로 렌더링합니다. "모델 훈련 결과 보기"와 "모델 입력하기" → 예측 연동은 아직 자리표시자
+   (placeholder) 상태입니다 (아래 절 참고).
 3. **`미니 프로젝트 흐름도.png`** — 원래 구상했던 더 큰 파이프라인
    ("현대오토에버 제조데이터 미니 프로젝트 (분류/회귀)")의 흐름도 스펙: 크롤링 → 전처리 → 시각화(EDA) →
    리터러시(Q→A) → 모델링(분류/회귀) → 평가 → 저장 → 보고서, `crawler.py`/`preprocessor.py`/`visualizer.py`/
@@ -64,17 +68,21 @@ python main.py
 그릴지"/"무엇을 어떻게 수집할지"는 전혀 알지 못합니다** — 그래프는 `visualizer.py`의 `Visualizer`, 크롤링은
 `crawler.py`의 `DataCrawler`에 위임합니다.
 
-- **오른쪽 패널 (동작함):** `crawler.SEARCH_WORD`("CNC 불량")에 대한 네이버 뉴스 대시보드. `__init__`에서
-  만든 `self._crawler = DataCrawler()` 인스턴스를 재사용하며, `_load_news_worker()`가 Tk 메인루프를 막지
-  않도록 백그라운드 `threading.Thread`에서 `self._crawler.fetch_news_items()`를 호출하고
-  `crawler.CRAWL_ERRORS`로 실패를 잡습니다. 결과 콜백은 직접 `self.after(...)`를 부르지 않고
-  `_schedule_on_ui_thread(callback, *args)`를 거칩니다 — 크롤링이 끝나기 전에 창이 닫히면 Tk 인터프리터가
-  이미 종료돼 `self.after()`가 `RuntimeError`를 던지는데, 이 헬퍼가 그 경우를 조용히 무시합니다
-  (`docs/troubleshooting.md` 참고). **백그라운드 스레드에서 Tk 위젯을 건드리는 새 코드를 추가할 때는 이
-  헬퍼를 재사용하세요.** 기사 제목을 클릭하면 `crawler.open_in_chrome()`이 호출되며,
-  `PROGRAMFILES`/`PROGRAMFILES(X86)`/`LOCALAPPDATA`에서 Chrome을 찾고 없으면 `webbrowser.open_new_tab`으로
-  대체합니다. 검색어/개수를 바꾸고 싶으면 `main.py`를 고치지 말고 `DataCrawler(search_word=..., count=...)`
-  생성 인자를 바꾸세요.
+- **오른쪽 패널 (동작함, 왼쪽 그래프와 연결됨):** 네이버 뉴스 대시보드. `__init__`에서 만든
+  `self._crawler = DataCrawler()` 인스턴스를 재사용하며, `_load_news_worker()`가 Tk 메인루프를 막지 않도록
+  백그라운드 `threading.Thread`에서 `self._crawler.fetch_news_items()`를 호출하고 `crawler.CRAWL_ERRORS`로
+  실패를 잡습니다. 결과 콜백은 직접 `self.after(...)`를 부르지 않고 `_schedule_on_ui_thread(callback, *args)`
+  를 거칩니다 — 크롤링이 끝나기 전에 창이 닫히면 Tk 인터프리터가 이미 종료돼 `self.after()`가
+  `RuntimeError`를 던지는데, 이 헬퍼가 그 경우를 조용히 무시합니다 (`docs/troubleshooting.md` 참고).
+  **백그라운드 스레드에서 Tk 위젯을 건드리는 새 코드를 추가할 때는 이 헬퍼를 재사용하세요.** 기사 제목을
+  클릭하면 `crawler.open_in_chrome()`이 호출되며, `PROGRAMFILES`/`PROGRAMFILES(X86)`/`LOCALAPPDATA`에서
+  Chrome을 찾고 없으면 `webbrowser.open_new_tab`으로 대체합니다.
+  - **검색어는 고정이 아니라 왼쪽 그래프 카드가 정한다.** `self._crawler.search_word`의 초깃값은
+    `DataCrawler()`의 기본값("CNC 불량")이지만, 그래프 카드를 클릭하면 `_search_news_for_chart(chart_title,
+    keyword)`가 `self._crawler.search_word`를 그 차트의 `chart_specs()` 4번째 값(검색 키워드)으로 바꾸고
+    `self.news_subtitle_var`(오른쪽 패널 부제목 `tk.StringVar`)를 갱신한 뒤 `self.refresh_news()`를 호출해
+    다시 크롤링합니다 — "이 그래프가 보여주는 인사이트와 관련된 뉴스"를 찾아보는 용도입니다. 검색어 자체를
+    바꾸고 싶다면 `main.py`가 아니라 `visualizer.py`의 `chart_specs()`에서 해당 차트의 키워드를 고치세요.
 - **왼쪽 패널:** "전체 데이터 한 눈에 보기" / "모델 훈련 결과 보기" / "모델 입력하기" 3개의 nav 버튼이
   `_select_left_view()`를 통해 라우팅되며, 각각 `self.data_box`의 내용을 교체합니다.
   - `_show_all_data_view()` (**구현 완료**)는 `_load_dataset()`으로 `ai4i2020.csv`를 지연 로드하고
@@ -85,18 +93,22 @@ python main.py
     - `_build_stat_tiles(parent, summary)` — `visualizer.summarize_status()`가 계산한 전체/정상/불량/
       불량률 dict를 받아 요약 카드 4개를 그립니다.
     - `_build_chart_grid(parent, chart_specs)` — `visualizer.chart_specs()`가 반환하는
-      `(제목, plot_fn, 설명)` 목록을 순서대로 2열 그리드에 배치합니다. 각 카드는 `_create_chart_card()`로
-      만들고, 카드마다 별도의 `matplotlib` `Figure`를 만들어 `plot_fn(figure, axes)`를 호출한 뒤
-      `FigureCanvasTkAgg`로 붙입니다. **어떤 그래프를 보여줄지, 몇 개인지, 설명 문구는 무엇인지는 전부
-      `visualizer.py` 쪽 책임** — 그래프를 추가/제거/수정하려면 `main.py`가 아니라
-      `Visualizer.chart_specs()`를 고치면 됩니다.
-    - **그래프 카드를 클릭하면 설명 툴팁이 뜬다.** 카드나 제목을 클릭하면 `_toggle_chart_tooltip()`이
-      `_open_chart_tooltip()`으로 `overrideredirect(True)` `Toplevel`(테두리 없는 작은 박스, 팝업 창이
-      아님)을 클릭 지점 근처에 띄우고 `chart_specs()`의 설명 문구를 보여줍니다. 같은 카드를 다시 클릭하면
-      닫히고, 다른 카드를 클릭하면 그쪽 설명으로 바뀌며, 카드 밖(윈도우 배경)을 클릭하거나 그래프 영역을
-      스크롤하거나 다른 nav 화면으로 전환하면(`_clear_data_box()`에서 처리) 자동으로 닫힙니다. 카드 쪽
-      클릭 핸들러가 `"break"`를 반환해, `self.bind("<Button-1>", ...)`으로 걸어둔 "빈 곳 클릭 시 닫기"
-      바인딩과 충돌하지 않도록 되어 있습니다 — 새로운 클릭형 위젯을 추가할 때 이 패턴을 참고하세요.
+      `(제목, plot_fn, 설명, 검색 키워드)` 목록을 순서대로 2열 그리드에 배치합니다. 각 카드는
+      `_create_chart_card()`로 만들고, 카드마다 별도의 `matplotlib` `Figure`를 만들어 `plot_fn(figure,
+      axes)`를 호출한 뒤 `FigureCanvasTkAgg`로 붙입니다. **어떤 그래프를 보여줄지, 몇 개인지, 설명 문구와
+      검색 키워드는 무엇인지는 전부 `visualizer.py` 쪽 책임** — 그래프를 추가/제거/수정하려면 `main.py`가
+      아니라 `Visualizer.chart_specs()`를 고치면 됩니다.
+    - **그래프 카드를 클릭하면 설명 툴팁이 뜨고, 동시에 오른쪽 뉴스 패널이 그 차트의 키워드로 다시
+      검색된다.** 카드나 제목을 클릭하면 `_toggle_chart_tooltip()`이 (a) `_open_chart_tooltip()`으로
+      `overrideredirect(True)` `Toplevel`(테두리 없는 작은 박스, 팝업 창이 아님)을 클릭 지점 근처에 띄워
+      `chart_specs()`의 설명 문구를 보여주고, (b) `_search_news_for_chart(title, keyword)`를 호출해 오른쪽
+      패널을 그 차트의 인사이트와 관련된 뉴스로 갱신합니다 — 단, **새로 열 때만** 검색을 트리거합니다
+      (같은 카드를 다시 클릭해 닫기만 할 때는 재검색하지 않음). 같은 카드를 다시 클릭하면 툴팁이 닫히고,
+      다른 카드를 클릭하면 그쪽 설명/검색어로 바뀌며, 카드 밖(윈도우 배경)을 클릭하거나 그래프 영역을
+      스크롤하거나 다른 nav 화면으로 전환하면(`_clear_data_box()`에서 처리) 툴팁만 자동으로 닫힙니다
+      (뉴스 패널의 마지막 검색 결과는 유지됨). 카드 쪽 클릭 핸들러가 `"break"`를 반환해,
+      `self.bind("<Button-1>", ...)`으로 걸어둔 "빈 곳 클릭 시 닫기" 바인딩과 충돌하지 않도록 되어 있습니다
+      — 새로운 클릭형 위젯을 추가할 때 이 패턴을 참고하세요.
   - `_show_training_result_view()`는 아직 `[모델 훈련 결과 화면 연결 위치]` 주석이 달린 자리표시자입니다 —
     위 프로젝트 결정에 따라 모델링/평가와 함께 나중으로 미룹니다.
   - `MODEL_INPUT_NAMES = ("type", "air_temp", "proc_temp", "rot_speed", "torque", "tool_wear")`는 6개
@@ -114,11 +126,15 @@ python main.py
 
 - `Visualizer(dataframe)`으로 생성. 내부 상태는 `self.dataframe` 하나뿐입니다.
 - `summarize_status()` — 전체/정상/불량 건수와 불량률 dict. UI 요약 카드가 그대로 소비합니다.
-- `chart_specs()` — `(제목, plot_fn, 설명)` 튜플 12개. **"전체 데이터 한 눈에 보기"에 어떤 차트를 몇 개, 무슨
-  순서, 무슨 설명으로 보여줄지는 이 메서드가 결정**합니다. 설명은 UI가 그래프 카드를 클릭했을 때 툴팁으로
-  보여주는 한글 문장이므로, 그래프를 추가/수정할 때 반드시 같이 채워야 합니다. 각 `plot_fn`은
-  `plot_fn(figure, axes)` 시그니처로, 흐름도의 4개 범용 메서드를 구체적인 컬럼에 바인딩한 람다이거나 전용
-  메서드입니다:
+- `chart_specs()` — `(제목, plot_fn, 설명, 검색 키워드)` 튜플 12개. **"전체 데이터 한 눈에 보기"에 어떤
+  차트를 몇 개, 무슨 순서, 무슨 설명·검색 키워드로 보여줄지는 이 메서드가 결정**합니다. 설명은 UI가 그래프
+  카드를 클릭했을 때 툴팁으로 보여주는 한글 문장이고, **검색 키워드는 같은 클릭에서 오른쪽 뉴스 패널이
+  검색할 문구**입니다 — 그 차트의 핵심 발견(가장 흔한 고장 모드, 가장 강한 상관관계 등)을 반영해서, 크롤링이
+  "이 그래프가 알려주는 것과 실제 업계 뉴스가 같은 이야기를 하는지" 찾아보게 하는 용도입니다. 예:
+  "세부 고장 모드별 발생 건수" 차트는 데이터에서 가장 흔한 고장 모드가 HDF(방열)이므로 키워드가
+  `"CNC 방열 고장"`입니다. 그래프를 추가/수정할 때 설명과 검색 키워드를 반드시 같이 채워야 합니다. 각
+  `plot_fn`은 `plot_fn(figure, axes)` 시그니처로, 흐름도의 4개 범용 메서드를 구체적인 컬럼에 바인딩한
+  람다이거나 전용 메서드입니다:
   - `plot_status_distribution`, `plot_type_distribution`, `plot_failure_rate_by_type`, `plot_corr`,
     `plot_failure_mode_counts` — 이 프로젝트 전용 차트. `plot_failure_mode_counts`는 세부 고장 모드
     (`TWF`/`HDF`/`PWF`/`OSF`/`RNF`, `FAILURE_MODE_COLUMNS`/`FAILURE_MODE_LABELS`)별 발생 건수를 보여줍니다

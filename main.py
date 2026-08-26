@@ -7,7 +7,7 @@ import pandas as pd
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
-from crawler import CRAWL_ERRORS, NEWS_COUNT, SEARCH_WORD, DataCrawler, open_in_chrome
+from crawler import CRAWL_ERRORS, NEWS_COUNT, DataCrawler, open_in_chrome
 from visualizer import STATUS_CRITICAL, STATUS_GOOD, Visualizer
 
 
@@ -48,6 +48,10 @@ class NewsDashboard(tk.Tk):
         self.filter_inputs = []
         # 오른쪽 뉴스 패널이 사용하는 크롤러. 검색어/개수를 바꾸려면 이 인스턴스를 건드리면 된다.
         self._crawler = DataCrawler()
+        # 오른쪽 패널 부제목. 그래프 카드를 클릭하면 그 차트의 검색 키워드로 바뀐다.
+        self.news_subtitle_var = tk.StringVar(
+            value=f"네이버 뉴스 검색  ·  {self._crawler.search_word} (기본)"
+        )
         # ai4i2020.csv를 매번 다시 읽지 않도록 최초 1회만 로드해 캐시한다.
         self._dataset = None
         # 그래프 클릭 시 뜨는 설명 툴팁(Toplevel)과, 그 툴팁을 연 카드 위젯.
@@ -213,11 +217,18 @@ class NewsDashboard(tk.Tk):
         ).pack(anchor="w")
         tk.Label(
             title_group,
-            text=f"네이버 뉴스 검색  ·  {SEARCH_WORD}",
+            textvariable=self.news_subtitle_var,
             font=("맑은 고딕", 10),
             fg=self.SUBTEXT,
             bg=self.BG,
             pady=6,
+        ).pack(anchor="w")
+        tk.Label(
+            title_group,
+            text="왼쪽 그래프 카드를 클릭하면 그 인사이트와 관련된 뉴스로 바뀝니다.",
+            font=("맑은 고딕", 9),
+            fg=self.SUBTEXT,
+            bg=self.BG,
         ).pack(anchor="w")
 
         self.refresh_button = ttk.Button(
@@ -381,9 +392,9 @@ class NewsDashboard(tk.Tk):
         grid.grid_columnconfigure(0, weight=1, uniform="chart-col")
         grid.grid_columnconfigure(1, weight=1, uniform="chart-col")
 
-        for index, (title, plot_fn, description) in enumerate(chart_specs):
+        for index, (title, plot_fn, description, keyword) in enumerate(chart_specs):
             row, column = divmod(index, 2)
-            card = self._create_chart_card(grid, title, description)
+            card = self._create_chart_card(grid, title, description, keyword)
             card.grid(row=row, column=column, sticky="nsew", padx=6, pady=(0, 12))
 
             figure = Figure(figsize=(4.0, 2.9), dpi=100)
@@ -398,13 +409,17 @@ class NewsDashboard(tk.Tk):
             canvas_widget.pack(fill="both", expand=True, padx=10, pady=(0, 10))
             canvas_widget.bind(
                 "<Button-1>",
-                lambda event, c=card, t=title, d=description: self._toggle_chart_tooltip(
-                    event, c, t, d
+                lambda event, c=card, t=title, d=description, k=keyword: self._toggle_chart_tooltip(
+                    event, c, t, d, k
                 ),
             )
 
-    def _create_chart_card(self, parent, title, description):
-        """그래프 하나를 담을 카드(제목 + 본문 영역)를 만들어 반환한다. 제목을 클릭해도 설명 툴팁이 뜬다."""
+    def _create_chart_card(self, parent, title, description, keyword):
+        """그래프 하나를 담을 카드(제목 + 본문 영역)를 만들어 반환한다.
+
+        카드나 제목을 클릭하면 설명 툴팁이 뜨고, 동시에 오른쪽 뉴스 패널이 keyword로 다시
+        검색된다 (그래프 인사이트 ↔ 관련 뉴스 연결).
+        """
         card = tk.Frame(
             parent,
             bg=self.CARD,
@@ -425,20 +440,30 @@ class NewsDashboard(tk.Tk):
         for widget in (card, title_label):
             widget.bind(
                 "<Button-1>",
-                lambda event, c=card, t=title, d=description: self._toggle_chart_tooltip(
-                    event, c, t, d
+                lambda event, c=card, t=title, d=description, k=keyword: self._toggle_chart_tooltip(
+                    event, c, t, d, k
                 ),
             )
         return card
 
-    def _toggle_chart_tooltip(self, event, source_widget, title, description):
-        """같은 카드를 다시 클릭하면 닫고, 다른 카드를 클릭하면 그쪽 설명으로 바꿔 연다."""
+    def _toggle_chart_tooltip(self, event, source_widget, title, description, keyword):
+        """같은 카드를 다시 클릭하면 닫고, 다른 카드를 클릭하면 그쪽 설명으로 바꿔 연다.
+
+        새로 열 때(같은 카드를 닫기만 하는 게 아닐 때)만 오른쪽 뉴스 패널을 keyword로 다시 검색한다.
+        """
         was_same_source = self._chart_tooltip_source is source_widget
         self._close_chart_tooltip()
         if not was_same_source:
             self._open_chart_tooltip(event, source_widget, title, description)
+            self._search_news_for_chart(title, keyword)
         # 이 클릭이 "빈 곳 클릭"으로도 처리돼 방금 연 툴팁이 바로 닫히지 않도록 전파를 막는다.
         return "break"
+
+    def _search_news_for_chart(self, chart_title, keyword):
+        """그래프 카드의 인사이트(keyword)로 오른쪽 뉴스 패널을 다시 검색한다."""
+        self._crawler.search_word = keyword
+        self.news_subtitle_var.set(f"네이버 뉴스 검색  ·  {keyword}  ({chart_title} 관련)")
+        self.refresh_news()
 
     def _open_chart_tooltip(self, event, source_widget, title, description):
         """클릭한 지점 근처에 제목+설명을 담은 작은 툴팁 박스(테두리 없는 Toplevel)를 띄운다."""
