@@ -50,7 +50,7 @@
 # 환경 설정 (저장소에 venv/가 이미 있음; 필요 시 재생성)
 # 주의: `pip`가 PATH상 Anaconda 것을 먼저 찾아 venv가 아닌 곳에 설치될 수 있으니
 # (docs/troubleshooting.md 참고) 반드시 venv의 python -m pip로 설치할 것
-./venv/Scripts/python -m pip install pandas numpy matplotlib seaborn jupyter scikit-learn xgboost
+./venv/Scripts/python -m pip install pandas numpy matplotlib seaborn jupyter scikit-learn xgboost lightgbm
 
 # 메인 EDA 노트북을 처음부터 끝까지 재실행 (저장소 루트의 images/*.png를 재생성함;
 # nbconvert는 기본적으로 노트북이 있는 폴더(src/)를 작업 디렉터리로 실행한다)
