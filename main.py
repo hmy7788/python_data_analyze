@@ -52,6 +52,9 @@ class NewsDashboard(tk.Tk):
         self.news_subtitle_var = tk.StringVar(
             value=f"네이버 뉴스 검색  ·  {self._crawler.search_word} (기본)"
         )
+        # 가장 최근에 시작한 뉴스 검색 요청의 번호. 더 늦게 시작한 요청의 결과만 화면에 반영해
+        # 느린 이전 요청이 나중에 도착해 최신 결과를 덮어쓰는 것을 막는다.
+        self._news_request_id = 0
         # ai4i2020.csv를 매번 다시 읽지 않도록 최초 1회만 로드해 캐시한다.
         self._dataset = None
         # 그래프 클릭 시 뜨는 설명 툴팁(Toplevel)과, 그 툴팁을 연 카드 위젯.
@@ -628,15 +631,29 @@ class NewsDashboard(tk.Tk):
             card["title"].configure(
                 text="불러오는 중...", fg=self.SUBTEXT, cursor="arrow"
             )
-        threading.Thread(target=self._load_news_worker, daemon=True).start()
+        # 이 요청의 번호를 찍어두고, 결과가 도착했을 때 "아직 최신 요청인지"를 확인하는 데 쓴다.
+        self._news_request_id += 1
+        threading.Thread(
+            target=self._load_news_worker, args=(self._news_request_id,), daemon=True
+        ).start()
 
-    def _load_news_worker(self):
-        """뉴스 크롤링 결과를 메인 UI 스레드에 전달한다."""
+    def _load_news_worker(self, request_id):
+        """뉴스 크롤링 결과를 메인 UI 스레드에 전달한다. request_id로 최신 요청인지 확인한다."""
         try:
             news_items = self._crawler.fetch_news_items()
-            self._schedule_on_ui_thread(self._show_news, news_items)
+            self._schedule_on_ui_thread(self._apply_if_current, request_id, self._show_news, news_items)
         except CRAWL_ERRORS as error:
-            self._schedule_on_ui_thread(self._show_error, str(error))
+            self._schedule_on_ui_thread(self._apply_if_current, request_id, self._show_error, str(error))
+
+    def _apply_if_current(self, request_id, callback, arg):
+        """request_id가 가장 최근 refresh_news() 호출과 같을 때만 결과를 반영한다.
+
+        그래프 카드를 빠르게 여러 번 클릭하면 검색 요청 여러 개가 동시에 진행 중일 수 있다.
+        이 가드가 없으면 먼저 시작했지만 나중에 끝난(느린) 요청의 결과가, 이미 화면에 표시된
+        더 최신 요청의 결과를 덮어써서 부제목(검색어)과 실제로 보이는 기사가 어긋나 버린다.
+        """
+        if request_id == self._news_request_id:
+            callback(arg)
 
     def _schedule_on_ui_thread(self, callback, *args):
         """백그라운드 스레드 결과를 메인 스레드에 안전하게 전달한다.

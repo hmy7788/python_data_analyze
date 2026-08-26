@@ -77,6 +77,13 @@ python main.py
   **백그라운드 스레드에서 Tk 위젯을 건드리는 새 코드를 추가할 때는 이 헬퍼를 재사용하세요.** 기사 제목을
   클릭하면 `crawler.open_in_chrome()`이 호출되며, `PROGRAMFILES`/`PROGRAMFILES(X86)`/`LOCALAPPDATA`에서
   Chrome을 찾고 없으면 `webbrowser.open_new_tab`으로 대체합니다.
+  - **동시에 여러 검색 요청이 진행 중일 수 있다.** 그래프 카드를 빠르게 연달아 클릭하면 `refresh_news()`가
+    매번 새 스레드를 띄우는데, 먼저 시작한 느린 요청이 나중에 시작한 빠른 요청보다 늦게 끝날 수 있습니다.
+    `self._news_request_id`(요청마다 증가하는 카운터)와 `_apply_if_current(request_id, callback, arg)`가
+    이를 가드합니다 — `request_id`가 `self._news_request_id`와 다르면(더 최신 요청이 이미 시작됐으면) 그
+    결과는 조용히 버려집니다. `_load_news_worker(request_id)`가 이 가드를 거쳐 `_show_news`/`_show_error`를
+    예약합니다 (`docs/troubleshooting.md` 참고). **사용자가 빠르게 여러 번 트리거할 수 있는 새 백그라운드
+    작업(예: 나중의 모델 예측 호출)을 추가할 때도 이 "최신 요청만 반영" 패턴을 재사용하세요.**
   - **검색어는 고정이 아니라 왼쪽 그래프 카드가 정한다.** `self._crawler.search_word`의 초깃값은
     `DataCrawler()`의 기본값("CNC 불량")이지만, 그래프 카드를 클릭하면 `_search_news_for_chart(chart_title,
     keyword)`가 `self._crawler.search_word`를 그 차트의 `chart_specs()` 4번째 값(검색 키워드)으로 바꾸고

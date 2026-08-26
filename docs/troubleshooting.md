@@ -6,10 +6,12 @@ CNC 설비 정상/불량 판별 미니 프로젝트를 진행하며 겪은 에�
 | 발생 단계 | 에러/이슈 내용 | 원인 | 해결 방법 | 예방 대책 |
 | --- | --- | --- | --- | --- |
 | UI (main.py, 크롤링) | 크롤링이 끝나기 전에 창을 닫으면 백그라운드 스레드에서 `RuntimeError: main thread is not in main loop`가 발생 (`self.after()` 호출부, `main.py`) | `_load_news_worker()`가 백그라운드 `threading.Thread`에서 `self._crawler.fetch_news_items()`가 끝난 뒤 `self.after(0, ...)`로 결과를 메인 스레드에 넘기는데, 그 사이 사용자가 창을 닫아 `self.destroy()`가 먼저 실행되면 Tk 인터프리터가 이미 종료된 상태라 `self.after()` 호출이 실패함 | `_schedule_on_ui_thread(callback, *args)` 헬퍼를 추가해 `self.after()` 호출을 `try/except (RuntimeError, tk.TclError)`로 감쌈 — 창이 닫힌 뒤 뒤늦게 도착한 콜백은 조용히 버림. `_load_news_worker()`가 이 헬퍼를 거쳐 `_show_news`/`_show_error`를 예약하도록 변경 | 백그라운드 스레드에서 Tk 위젯을 건드리거나 `self.after()`를 호출하는 코드는 항상 `_schedule_on_ui_thread()`처럼 방어적으로 감쌀 것. 새 백그라운드 작업을 추가할 때 이 패턴을 재사용 |
+| 크롤링 (main.py, 그래프-뉴스 연동) | 그래프 카드를 빠르게 연달아 클릭하면(예: A 카드 → 곧바로 B 카드) 오른쪽 뉴스 패널의 부제목은 B의 검색어인데 실제로 보이는 기사 카드는 A의 결과로 남는 경우가 생김 | `refresh_news()`를 부를 때마다 새 `threading.Thread`가 뜨는데, 두 요청(A/B)이 동시에 진행 중일 때 어떤 스레드의 결과를 반영할지 구분하는 장치가 없었음. 나중에 시작한 B가 먼저 끝나 화면을 갱신해도, 그보다 느린 A의 결과가 뒤늦게 도착하면 `_show_news()`가 그대로 덮어씀(최신/과거 요청 구분 없음) | `self._news_request_id` 카운터를 추가. `refresh_news()`가 호출될 때마다 증가시켜 스레드에 넘기고, 결과가 도착하면 `_apply_if_current(request_id, callback, arg)`가 `request_id == self._news_request_id`일 때만 `_show_news`/`_show_error`를 실행 — 더 최신 요청이 이미 시작된 뒤에 도착한 오래된 결과는 조용히 버려짐 | 같은 백그라운드 작업(크롤링, 향후 모델 예측 등)을 사용자가 짧은 시간에 여러 번 트리거할 수 있는 코드를 새로 추가할 때는, 항상 "이 결과가 아직 최신 요청에 대한 것인가?"를 확인하는 요청 ID/토큰 가드를 같이 넣을 것 |
+| 테스트/QA (main.py 백그라운드 스레드 검증) | 위 레이스 컨디션을 재현하는 스크립트에서 `app.update()`를 반복 호출하는 방식으로 기다렸더니, 배경 스레드가 끝나도 `_show_news()`가 전혀 호출되지 않고 스레드가 영영 살아있는 것처럼 보여 "심각한 버그"로 오판할 뻔함 | `threading.Thread` 안에서 부르는 `self.after(0, ...)`는 Tk의 실제 `mainloop()` 이벤트 루프와 맞물려야 안전하게 처리되는데, `mainloop()` 대신 파이썬 `while` 루프에서 `app.update()`를 계속 호출하는 테스트 방식은 이 상호작용을 제대로 흉내내지 못해 콜백이 처리되지 않았음(테스트 하네스 문제였지 실제 앱 버그가 아니었음) | 배경 스레드가 얽힌 동작을 테스트할 때는 `app.update()` 폴링 대신 `app.after(지연, 검증후_app.quit)`을 걸어두고 `app.mainloop()`을 실제로 돌려서 확인하도록 재작성 | Tkinter + `threading` 조합을 테스트할 때는 반드시 실제 `mainloop()`(과 `app.quit()`으로 종료) 기반으로 검증할 것 — `update()` 폴링 결과만 보고 버그라고 단정하지 말 것 |
 
 ## 작성 가이드
 
-- **발생 단계**: 크롤링 / 전처리 / 시각화(EDA) / 모델링 / 평가 / 저장 / 보고서 / UI(main.py) 중 해당하는 단계.
+- **발생 단계**: 크롤링 / 전처리 / 시각화(EDA) / 모델링 / 평가 / 저장 / 보고서 / UI(main.py) / 테스트-QA 중 해당하는 단계.
 - **에러/이슈 내용**: 실제 에러 메시지 또는 증상을 그대로 옮겨 적는다.
 - **원인**: 로그·트레이스백을 보고 확인한 근본 원인.
 - **해결 방법**: 실제로 적용한 조치 (코드 변경, 설정 변경 등).
