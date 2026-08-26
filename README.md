@@ -2,8 +2,8 @@
 
 [UCI AI4I 2020 Predictive Maintenance Dataset](https://archive.ics.uci.edu/dataset/601/ai4i+2020+predictive+maintenance+dataset)을 활용한 탐색적 데이터 분석(EDA) 프로젝트입니다.
 
-- 분석 코드: [`EDA.ipynb`](EDA.ipynb)
-- 원본 데이터: [`ai4i2020.csv`](ai4i2020.csv) (10,000행 x 14열)
+- 분석 코드: [`src/EDA.ipynb`](src/EDA.ipynb)
+- 원본 데이터: [`src/ai4i2020.csv`](src/ai4i2020.csv) (10,000행 x 14열)
 
 ## 데이터 개요
 
@@ -86,5 +86,5 @@ L(60%) > M(30%) > H(10%) 순으로 구성.
 
 ```bash
 pip install pandas numpy matplotlib seaborn jupyter
-jupyter nbconvert --to notebook --execute --inplace EDA.ipynb
+jupyter nbconvert --to notebook --execute --inplace src/EDA.ipynb
 ```

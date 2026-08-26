@@ -8,6 +8,13 @@
 이미 저장소에 있는 UCI AI4I 2020 Predictive Maintenance 데이터셋(`ai4i2020.csv`)을 사용합니다. 제조 데이터를
 별도로 크롤링할 계획은 없으며, 앞으로도 `ai4i2020.csv`가 유일한 데이터 소스입니다.
 
+**모든 `.py`/`.ipynb`/`.csv` 파일은 `src/` 아래에 있습니다** (`src/main.py`, `src/crawler.py`,
+`src/visualizer.py`, `src/EDA.ipynb`, `src/EDA2.ipynb`, `src/ai4i2020.csv`). 아래 본문에서 파일명만
+적었으면 전부 `src/` 아래에 있다는 뜻입니다. `README.md`/`CLAUDE.md`/`docs/`/`images/`/
+`미니 프로젝트 흐름도.png`는 저장소 루트에 그대로 남아 있습니다 — `images/`가 `src/` 밖에 있기 때문에
+`EDA.ipynb`의 `savefig()` 호출은 `"../images/eda_*.png"`처럼 한 단계 위로 올라가는 상대경로를 씁니다.
+앞으로 `preprocessor.py`/`modeling.py` 등 새 모듈을 추가할 때도 `src/` 안에 만드세요.
+
 1. **EDA 노트북** (`EDA.ipynb`, `EDA2.ipynb`) — `ai4i2020.csv` 분석. 완료되었으며 `README.md`에 정리되어 있음.
 2. **`main.py`** (Tkinter UI) + **`visualizer.py`** (그래프) + **`crawler.py`** (크롤링)로 모듈이 나뉘어
    있습니다. 오른쪽 패널은 네이버 뉴스 크롤러이지만, **더 이상 무관한 고정 검색어가 아니라 왼쪽 그래프
@@ -37,22 +44,26 @@
 # 환경 설정 (저장소에 venv/가 이미 있음; 필요 시 재생성)
 pip install pandas numpy matplotlib seaborn jupyter
 
-# 메인 EDA 노트북을 처음부터 끝까지 재실행 (README.md가 참조하는 images/*.png를 재생성함)
-jupyter nbconvert --to notebook --execute --inplace EDA.ipynb
+# 메인 EDA 노트북을 처음부터 끝까지 재실행 (저장소 루트의 images/*.png를 재생성함;
+# nbconvert는 기본적으로 노트북이 있는 폴더(src/)를 작업 디렉터리로 실행한다)
+jupyter nbconvert --to notebook --execute --inplace src/EDA.ipynb
 
-# Tkinter 앱 실행 (네이버 뉴스 크롤링을 위해 인터넷 연결 필요)
-python main.py
+# Tkinter 앱 실행 (저장소 루트에서 실행. 네이버 뉴스 크롤링을 위해 인터넷 연결 필요)
+python src/main.py
 ```
 
 ## 아키텍처
 
-### EDA 노트북
-- `EDA.ipynb`는 `README.md`가 참조하는 메인 분석 노트북으로, `images/` 아래의 모든 차트를 생성합니다
-  (히스토그램, 상관관계 히트맵, 고장 분포, 세부 고장 모드, 고장 여부별 박스플롯, Type별 고장률).
-- `EDA2.ipynb`는 같은 데이터셋으로 컬럼 선택/그룹핑/정렬/시각화 연습에 초점을 맞춘 2차 노트북이며(노트북
-  맨 앞 markdown 셀 참고), `EDA2.html`로 export되어 있습니다.
-- `ai4i2020.csv`(10,000행 × 14열)는 결측치·중복행이 없지만, `Type`과 `Product ID`에 앞뒤 공백이 섞여 있어
-  groupby/join 전에 반드시 strip해야 합니다 (`EDA2.ipynb` 초반의 `.str.strip()` 호출 참고).
+### EDA 노트북 (`src/EDA.ipynb`, `src/EDA2.ipynb`, `src/ai4i2020.csv`)
+- `src/EDA.ipynb`는 `README.md`가 참조하는 메인 분석 노트북으로, 저장소 루트의 `images/` 아래에 모든
+  차트를 생성합니다 (히스토그램, 상관관계 히트맵, 고장 분포, 세부 고장 모드, 고장 여부별 박스플롯,
+  Type별 고장률). 노트북이 `src/`에 있고 `images/`는 루트에 있으므로 `savefig()` 호출은
+  `"../images/eda_*.png"` 형태의 상대경로를 씁니다 — `images/` 폴더를 옮기거나 노트북을 다른 곳으로
+  옮기면 이 상대경로도 같이 고쳐야 합니다.
+- `src/EDA2.ipynb`는 같은 데이터셋으로 컬럼 선택/그룹핑/정렬/시각화 연습에 초점을 맞춘 2차 노트북이며
+  (노트북 맨 앞 markdown 셀 참고), 저장소 루트의 `EDA2.html`로 export되어 있습니다.
+- `src/ai4i2020.csv`(10,000행 × 14열)는 결측치·중복행이 없지만, `Type`과 `Product ID`에 앞뒤 공백이 섞여
+  있어 groupby/join 전에 반드시 strip해야 합니다 (`EDA2.ipynb` 초반의 `.str.strip()` 호출 참고).
 - 이후 모델링 작업에 참고해야 할 분석 결과(`README.md` 기준):
   - 타겟 `Machine failure`의 클래스 불균형이 심함(양성 3.39%) — accuracy 대신 recall/precision/F1/ROC-AUC
     사용, 리샘플링(SMOTE)이나 `class_weight` 고려.
@@ -63,7 +74,7 @@ python main.py
   - 고장 예측에 가장 유효한 변수: `Torque` > `Tool wear` > `Air temperature`; 제품 `Type` 등급이 높을수록
     고장률이 낮아짐 (L 3.92% > M 2.77% > H 2.09%).
 
-### `main.py` — Tkinter 데스크톱 UI 셸 (UI 전용, 크롤링/그래프 내용은 모른다)
+### `src/main.py` — Tkinter 데스크톱 UI 셸 (UI 전용, 크롤링/그래프 내용은 모른다)
 하나의 `Frame` 안에서 `grid`로 좌/우를 나눈 단일 파일 앱입니다. **`main.py`는 위젯 조립만 담당하고, "무엇을
 그릴지"/"무엇을 어떻게 수집할지"는 전혀 알지 못합니다** — 그래프는 `visualizer.py`의 `Visualizer`, 크롤링은
 `crawler.py`의 `DataCrawler`에 위임합니다.
@@ -134,7 +145,7 @@ python main.py
     단계로 미룬 상태입니다. 입력값은 `self.model_input_vars`(탭 전환과 무관하게 살아있는
     `tk.StringVar`)에 보관되므로, 저장하지 않고 다른 탭에 갔다 와도 입력하던 값은 유지됩니다.
 
-### `visualizer.py` — 그래프 전용 모듈 (Tkinter를 모른다)
+### `src/visualizer.py` — 그래프 전용 모듈 (Tkinter를 모른다)
 `ai4i2020.csv`를 `matplotlib`으로 그리는 로직만 담당하며, Tkinter는 import조차 하지 않습니다. 흐름도가
 지정한 `visualizer.py` / `Visualizer` 이름과 `plot_dist()`/`plot_corr()`/`plot_box()`/`plot_scatter()`
 메서드 이름을 그대로 따랐습니다 (아래 "목표 파이프라인 모듈" 표 참고 — 이 모듈은 예정보다 먼저 구현됨).
@@ -170,7 +181,7 @@ python main.py
 - `main.py`가 아닌 다른 곳(예: 나중의 `report.py`)에서도 그대로 재사용할 수 있도록, `Visualizer`는 Tkinter나
   파일 경로에 의존하지 않고 순수하게 `DataFrame` → `matplotlib` `Figure`/`Axes`만 다룹니다.
 
-### `crawler.py` — 크롤링 전용 모듈 (Tkinter를 모른다)
+### `src/crawler.py` — 크롤링 전용 모듈 (Tkinter를 모른다)
 네이버 뉴스 검색 결과를 가져오는 로직만 담당하며, Tkinter는 import조차 하지 않습니다. 흐름도가 지정한
 `crawler.py` / `DataCrawler` 이름과 `collect()`/`parse()` 메서드 이름을 따랐습니다 (아래 "목표 파이프라인
 모듈" 표 참고 — `save_raw()`는 아직 미구현: 지금은 UI가 매번 새로 불러올 뿐 수집 결과를 파일로 남기지
