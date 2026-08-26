@@ -10,7 +10,7 @@
 
 **모든 `.py`/`.ipynb`/`.csv` 파일은 `src/` 아래에 있습니다** (`src/main.py`, `src/crawler.py`,
 `src/visualizer.py`, `src/EDA.ipynb`, `src/EDA2.ipynb`, `src/classifications.ipynb`,
-`src/ai4i2020.csv`). 아래 본문에서 파일명만 적었으면 전부 `src/` 아래에 있다는 뜻입니다.
+`src/regression.ipynb`, `src/ai4i2020.csv`). 아래 본문에서 파일명만 적었으면 전부 `src/` 아래에 있다는 뜻입니다.
 `README.md`/`CLAUDE.md`/`docs/`/`images/`/`미니 프로젝트 흐름도.png`는 저장소 루트에 그대로 남아 있습니다
 — `images/`가 `src/` 밖에 있기 때문에 `EDA.ipynb`/`classifications.ipynb`의 `savefig()` 호출은
 `"../images/*.png"`처럼 한 단계 위로 올라가는 상대경로를 씁니다. 앞으로 `preprocessor.py` 등 새 모듈을
@@ -121,6 +121,25 @@ python src/main.py
   더 압축해서 담고 있다는 점은 확인됩니다(전체 성능 개선으로 이어질 정도는 아님). 이후 이 노트북을
   고치거나 새 모델링 코드를 짤 때 "특성을 더 정교하게 손보면 이 결과가 크게 개선될 것"이라고 가정하지
   말고, 먼저 이 결론(약한 신호)을 참고하세요.
+
+### `src/regression.ipynb` — Torque[Nm] 회귀 모델 4종 비교
+`classifications.ipynb`(Type 분류)와 짝을 이루는 회귀 버전. `Air/Process temperature`, `Rotational
+speed`, `Tool wear`, `Machine failure`/고장 모드 플래그로 `Torque [Nm]`을 예측한다. **주의**:
+`Rotational speed`는 특성으로 써도 되지만(EDA에서 확인한 -0.88 상관관계), `Power`나
+`Torque × Tool wear`처럼 `Torque`를 직접 곱해 만드는 파생변수는 타겟 정보를 그대로 포함하므로(데이터
+누수) 이 노트북에서는 만들지 않는다.
+
+- **모델 4종**: `RandomForestRegressor`, `XGBRegressor`, `LinearRegression`, `SVR(kernel="rbf")`.
+  Linear Regression/SVR은 `StandardScaler`로 표준화한 데이터를, 트리 기반 모델은 원본 데이터를 사용.
+- **평가지표**: R², MAE, RMSE, MAPE(%).
+- **그래프**: 모델별 "실제값 vs 예측값" 산점도(2x2, y=x 기준선 포함)를 `../images/regression_scatter.png`에
+  저장.
+- **핵심 결과**: R² 기준 Random Forest(0.847) > XGBoost(0.822) > SVR(0.816) > Linear
+  Regression(0.804) — **4개 모델 모두 R² 0.8 이상으로 뚜렷하게 예측됨**. `classifications.ipynb`의 Type
+  예측(AUC 0.48~0.51, 랜덤 수준)과 대비되는 결과로, "물리적으로 실제 관계가 있는 변수(Torque↔회전속도)는
+  잘 예측되고, 관계가 약한 라벨(Type)은 잘 예측되지 않는다"는 일관된 패턴을 보여준다. 두 노트북을 같이
+  보면 "모델을 더 좋은 걸 썼는가"보다 "타겟이 특성들과 실제로 관계가 있는가"가 예측 성능을 훨씬 크게
+  좌우한다는 점을 대조적으로 확인할 수 있다.
 
 ### `src/main.py` — Tkinter 데스크톱 UI 셸 (UI 전용, 크롤링/그래프 내용은 모른다)
 하나의 `Frame` 안에서 `grid`로 좌/우를 나눈 단일 파일 앱입니다. **`main.py`는 위젯 조립만 담당하고, "무엇을
