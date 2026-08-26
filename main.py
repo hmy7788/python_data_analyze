@@ -1,21 +1,18 @@
-import gzip
-import html
-import os
-import re
-import subprocess
 import threading
 import tkinter as tk
-import webbrowser
-from html.parser import HTMLParser
 from pathlib import Path
 from tkinter import ttk
-from urllib.error import HTTPError, URLError
-from urllib.parse import quote
-from urllib.request import Request, urlopen
+
+import pandas as pd
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+
+from crawler import CRAWL_ERRORS, NEWS_COUNT, SEARCH_WORD, DataCrawler, open_in_chrome
+from visualizer import STATUS_CRITICAL, STATUS_GOOD, Visualizer
 
 
-SEARCH_WORD = "CNC 불량"
-NEWS_COUNT = 5
+# CNC 설비 정상/불량 판별에 쓸 원본 데이터. main.py와 같은 폴더에 있다고 가정한다.
+DATA_PATH = Path(__file__).resolve().parent / "ai4i2020.csv"
 # 왼쪽 입력칸의 화면 배치 순서이자 모델에 전달할 변수명이다.
 MODEL_INPUT_NAMES = (
     "type",
@@ -25,137 +22,6 @@ MODEL_INPUT_NAMES = (
     "torque",
     "tool_wear",
 )
-NAVER_NEWS_URL = (
-    "https://search.naver.com/search.naver"
-    f"?where=news&query={quote(SEARCH_WORD)}&sort=0"
-)
-
-
-class NaverNewsParser(HTMLParser):
-    """네이버 뉴스 검색 페이지에서 제목과 기사 URL을 추출한다."""
-
-    def __init__(self):
-        super().__init__(convert_charrefs=True)
-        self.items = []
-        self._anchor_depth = 0
-        self._anchor_is_news = False
-        self._anchor_title = ""
-        self._anchor_url = ""
-        self._anchor_text = []
-        self._headline_depth = 0
-        self._headline_text = []
-        self._headline_url = ""
-
-    @staticmethod
-    def _attrs_to_dict(attrs):
-        return {key: (value or "") for key, value in attrs}
-
-    def _add_item(self, title, url):
-        title = re.sub(r"\s+", " ", html.unescape(title)).strip()
-        url = html.unescape(url).strip()
-        if not title or not url.startswith(("http://", "https://")):
-            return
-        if all(item["title"] != title for item in self.items):
-            self.items.append({"title": title, "url": url})
-
-    def handle_starttag(self, tag, attrs):
-        values = self._attrs_to_dict(attrs)
-        classes = values.get("class", "").split()
-
-        # 기존 네이버 검색 결과 마크업: <a class="news_tit" ...>
-        if tag == "a":
-            self._anchor_depth += 1
-            if self._anchor_depth == 1:
-                self._anchor_is_news = "news_tit" in classes
-                self._anchor_title = values.get("title", "")
-                self._anchor_url = values.get("href", "")
-                self._anchor_text = []
-
-        # 신규 검색 결과 마크업의 뉴스 제목 텍스트.
-        if any("text-type-headline" in class_name for class_name in classes):
-            self._headline_depth = 1
-            self._headline_text = []
-            self._headline_url = self._anchor_url
-        elif self._headline_depth:
-            self._headline_depth += 1
-
-    def handle_endtag(self, tag):
-        if self._headline_depth:
-            self._headline_depth -= 1
-            if self._headline_depth == 0:
-                self._add_item("".join(self._headline_text), self._headline_url)
-                self._headline_text = []
-                self._headline_url = ""
-
-        if tag == "a" and self._anchor_depth:
-            if self._anchor_depth == 1 and self._anchor_is_news:
-                self._add_item(
-                    self._anchor_title or "".join(self._anchor_text),
-                    self._anchor_url,
-                )
-            self._anchor_depth -= 1
-            if self._anchor_depth == 0:
-                self._anchor_is_news = False
-                self._anchor_url = ""
-
-    def handle_data(self, data):
-        if self._anchor_depth and self._anchor_is_news:
-            self._anchor_text.append(data)
-        if self._headline_depth:
-            self._headline_text.append(data)
-
-
-def fetch_news_items():
-    """네이버 뉴스 검색 결과에서 제목과 링크를 최대 NEWS_COUNT개 가져온다."""
-    # 실제 브라우저와 유사한 헤더를 사용해 네이버 검색 페이지를 요청한다.
-    request = Request(
-        NAVER_NEWS_URL,
-        headers={
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/126.0 Safari/537.36"
-            ),
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.7",
-            "Accept-Encoding": "gzip",
-            "Referer": "https://www.naver.com/",
-        },
-    )
-
-    with urlopen(request, timeout=12) as response:
-        body = response.read()
-        if response.headers.get("Content-Encoding") == "gzip":
-            body = gzip.decompress(body)
-        charset = response.headers.get_content_charset() or "utf-8"
-        page = body.decode(charset, errors="replace")
-
-    parser = NaverNewsParser()
-    parser.feed(page)
-
-    if not parser.items:
-        raise RuntimeError("네이버 검색 결과에서 뉴스 제목과 링크를 찾지 못했습니다.")
-    return parser.items[:NEWS_COUNT]
-
-
-def open_in_chrome(url):
-    """설치된 Chrome을 우선 사용하고, 없으면 기본 브라우저로 연다."""
-    chrome_candidates = []
-    locations = (
-        ("PROGRAMFILES", "Google/Chrome/Application/chrome.exe"),
-        ("PROGRAMFILES(X86)", "Google/Chrome/Application/chrome.exe"),
-        ("LOCALAPPDATA", "Google/Chrome/Application/chrome.exe"),
-    )
-    for environment_name, relative_path in locations:
-        base_path = os.environ.get(environment_name)
-        if base_path:
-            chrome_candidates.append(Path(base_path) / relative_path)
-
-    for chrome_path in chrome_candidates:
-        if chrome_path.is_file():
-            subprocess.Popen([str(chrome_path), url])
-            return
-    webbrowser.open_new_tab(url)
 
 
 class NewsDashboard(tk.Tk):
@@ -180,6 +46,13 @@ class NewsDashboard(tk.Tk):
         self.cards = []
         self.nav_buttons = []
         self.filter_inputs = []
+        # 오른쪽 뉴스 패널이 사용하는 크롤러. 검색어/개수를 바꾸려면 이 인스턴스를 건드리면 된다.
+        self._crawler = DataCrawler()
+        # ai4i2020.csv를 매번 다시 읽지 않도록 최초 1회만 로드해 캐시한다.
+        self._dataset = None
+        # 그래프 클릭 시 뜨는 설명 툴팁(Toplevel)과, 그 툴팁을 연 카드 위젯.
+        self._chart_tooltip = None
+        self._chart_tooltip_source = None
 
         # 각 Entry의 현재 값을 보관한다. UI 입력과 모델 변수를 연결하는 역할이다.
         self.model_input_vars = {
@@ -372,6 +245,10 @@ class NewsDashboard(tk.Tk):
             justify="left",
         ).pack(anchor="w", pady=(5, 0))
 
+        # 그래프 카드가 아닌 곳을 클릭하면 열려 있는 설명 툴팁을 닫는다. 카드 쪽 클릭 핸들러가
+        # "break"를 반환해 자기 자신의 토글 동작에는 이 바인딩이 끼어들지 않는다.
+        self.bind("<Button-1>", lambda _event: self._close_chart_tooltip(), add="+")
+
     def _select_left_view(self, selected_index):
         """선택된 메뉴의 색상을 바꾸고 모델 입력 메뉴라면 값을 저장한다."""
         for index, button in enumerate(self.nav_buttons):
@@ -390,23 +267,229 @@ class NewsDashboard(tk.Tk):
 
     def _clear_data_box(self):
         """메뉴를 전환하기 전에 데이터 박스에 표시된 기존 내용을 지운다."""
+        self._close_chart_tooltip()
         for widget in self.data_box.winfo_children():
             widget.destroy()
+
+    def _load_dataset(self):
+        """ai4i2020.csv를 읽어 캐시한다. 컬럼명/Type 값의 앞뒤 공백을 제거한다."""
+        if self._dataset is None:
+            dataset = pd.read_csv(DATA_PATH)
+            dataset.columns = [column.strip() for column in dataset.columns]
+            dataset["Type"] = dataset["Type"].str.strip()
+            self._dataset = dataset
+        return self._dataset
 
     def _show_all_data_view(self):
         """'전체 데이터 한 눈에 보기' 버튼의 데이터 박스 화면을 구성한다."""
         self._clear_data_box()
 
-        # [전체 데이터 화면 연결 위치]
-        # 추후 전체 데이터를 표시할 표나 그래프로 아래 안내 문구를 교체하면 된다.
-        # 생성한 위젯의 부모는 self.data_box로 지정한다.
+        try:
+            dataset = self._load_dataset()
+        except (OSError, pd.errors.ParserError, KeyError) as error:
+            self._show_data_error(str(error))
+            return
+
+        scroll_area = self._make_scrollable(self.data_box)
+
+        tk.Label(
+            scroll_area,
+            text=f"AI4I 2020 데이터셋 · {len(dataset):,}행 · {len(dataset.columns)}열 · 설비 정상/불량 판별용",
+            font=("맑은 고딕", 10, "bold"),
+            fg=self.TEXT,
+            bg="#FAFBFC",
+        ).pack(anchor="w", padx=12, pady=(12, 0))
+
+        visualizer = Visualizer(dataset)
+        self._build_stat_tiles(scroll_area, visualizer.summarize_status())
+        self._build_chart_grid(scroll_area, visualizer.chart_specs())
+
+    def _show_data_error(self, message):
+        """CSV 로드 실패 시 데이터 박스에 원인을 표시한다."""
         tk.Label(
             self.data_box,
-            text="여기에 데이터를 보여주세요",
-            font=("맑은 고딕", 15, "bold"),
-            fg=self.SUBTEXT,
+            text=f"데이터를 불러오지 못했습니다.\n({message})",
+            font=("맑은 고딕", 11),
+            fg="#B42318",
             bg="#FAFBFC",
+            justify="center",
+            wraplength=420,
         ).place(relx=0.5, rely=0.5, anchor="center")
+
+    def _make_scrollable(self, parent):
+        """parent를 세로 스크롤 가능한 영역으로 감싸고, 내용을 담을 내부 Frame을 반환한다."""
+        container = tk.Frame(parent, bg="#FAFBFC")
+        container.pack(fill="both", expand=True)
+
+        canvas = tk.Canvas(container, bg="#FAFBFC", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+        inner = tk.Frame(canvas, bg="#FAFBFC")
+
+        inner.bind(
+            "<Configure>",
+            lambda _event: canvas.configure(scrollregion=canvas.bbox("all")),
+        )
+        window_id = canvas.create_window((0, 0), window=inner, anchor="nw")
+        canvas.bind(
+            "<Configure>",
+            lambda event: canvas.itemconfig(window_id, width=event.width),
+        )
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        # 마우스가 그래프 영역 위에 있을 때만 휠 스크롤을 연결해 다른 위젯에 영향을 주지 않는다.
+        def _on_wheel(event):
+            # 스크롤하면 열려 있던 툴팁이 카드와 어긋나 보이므로 같이 닫는다.
+            self._close_chart_tooltip()
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        canvas.bind("<Enter>", lambda _e: canvas.bind_all("<MouseWheel>", _on_wheel))
+        canvas.bind("<Leave>", lambda _e: canvas.unbind_all("<MouseWheel>"))
+        canvas.bind("<Destroy>", lambda _e: canvas.unbind_all("<MouseWheel>"))
+
+        return inner
+
+    def _build_stat_tiles(self, parent, summary):
+        """전체 건수/정상/불량/불량률 요약 카드 4개를 만든다. summary는 Visualizer.summarize_status()의 결과."""
+        tiles = (
+            ("전체 데이터", f"{summary['total']:,}건", self.TEXT),
+            ("정상", f"{summary['normal']:,}건", STATUS_GOOD),
+            ("불량", f"{summary['failure']:,}건", STATUS_CRITICAL),
+            ("불량률", f"{summary['failure_rate']:.2f}%", STATUS_CRITICAL),
+        )
+
+        row = tk.Frame(parent, bg="#FAFBFC")
+        row.pack(fill="x", padx=12, pady=(10, 4))
+        for index, (label, value, color) in enumerate(tiles):
+            row.grid_columnconfigure(index, weight=1, uniform="stat-tile")
+            tile = tk.Frame(
+                row, bg=self.CARD, highlightbackground=self.BORDER, highlightthickness=1
+            )
+            tile.grid(row=0, column=index, sticky="ew", padx=(0 if index == 0 else 6, 0))
+            tk.Label(
+                tile, text=value, font=("맑은 고딕", 16, "bold"), fg=color, bg=self.CARD
+            ).pack(pady=(12, 0))
+            tk.Label(
+                tile, text=label, font=("맑은 고딕", 9), fg=self.SUBTEXT, bg=self.CARD
+            ).pack(pady=(0, 12))
+
+    def _build_chart_grid(self, parent, chart_specs):
+        """분석 그래프 카드들을 2열 그리드로 배치한다. chart_specs는 Visualizer.chart_specs()의 결과."""
+        grid = tk.Frame(parent, bg="#FAFBFC")
+        grid.pack(fill="both", expand=True, padx=12, pady=(6, 16))
+        grid.grid_columnconfigure(0, weight=1, uniform="chart-col")
+        grid.grid_columnconfigure(1, weight=1, uniform="chart-col")
+
+        for index, (title, plot_fn, description) in enumerate(chart_specs):
+            row, column = divmod(index, 2)
+            card = self._create_chart_card(grid, title, description)
+            card.grid(row=row, column=column, sticky="nsew", padx=6, pady=(0, 12))
+
+            figure = Figure(figsize=(4.0, 2.9), dpi=100)
+            axes = figure.add_subplot(1, 1, 1)
+            plot_fn(figure, axes)
+            figure.tight_layout()
+
+            canvas = FigureCanvasTkAgg(figure, master=card)
+            canvas.draw()
+            canvas_widget = canvas.get_tk_widget()
+            canvas_widget.configure(bg=self.CARD, highlightthickness=0, cursor="hand2")
+            canvas_widget.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+            canvas_widget.bind(
+                "<Button-1>",
+                lambda event, c=card, t=title, d=description: self._toggle_chart_tooltip(
+                    event, c, t, d
+                ),
+            )
+
+    def _create_chart_card(self, parent, title, description):
+        """그래프 하나를 담을 카드(제목 + 본문 영역)를 만들어 반환한다. 제목을 클릭해도 설명 툴팁이 뜬다."""
+        card = tk.Frame(
+            parent,
+            bg=self.CARD,
+            highlightbackground=self.BORDER,
+            highlightthickness=1,
+            cursor="hand2",
+        )
+        title_label = tk.Label(
+            card,
+            text=title,
+            font=("맑은 고딕", 10, "bold"),
+            fg=self.TEXT,
+            bg=self.CARD,
+            cursor="hand2",
+        )
+        title_label.pack(anchor="w", padx=12, pady=(10, 0))
+
+        for widget in (card, title_label):
+            widget.bind(
+                "<Button-1>",
+                lambda event, c=card, t=title, d=description: self._toggle_chart_tooltip(
+                    event, c, t, d
+                ),
+            )
+        return card
+
+    def _toggle_chart_tooltip(self, event, source_widget, title, description):
+        """같은 카드를 다시 클릭하면 닫고, 다른 카드를 클릭하면 그쪽 설명으로 바꿔 연다."""
+        was_same_source = self._chart_tooltip_source is source_widget
+        self._close_chart_tooltip()
+        if not was_same_source:
+            self._open_chart_tooltip(event, source_widget, title, description)
+        # 이 클릭이 "빈 곳 클릭"으로도 처리돼 방금 연 툴팁이 바로 닫히지 않도록 전파를 막는다.
+        return "break"
+
+    def _open_chart_tooltip(self, event, source_widget, title, description):
+        """클릭한 지점 근처에 제목+설명을 담은 작은 툴팁 박스(테두리 없는 Toplevel)를 띄운다."""
+        tooltip = tk.Toplevel(self)
+        tooltip.overrideredirect(True)
+        tooltip.attributes("-topmost", True)
+        tooltip.configure(bg=self.BORDER)
+
+        inner = tk.Frame(tooltip, bg=self.CARD)
+        inner.pack(padx=1, pady=1)
+        tk.Label(
+            inner,
+            text=title,
+            font=("맑은 고딕", 10, "bold"),
+            fg=self.TEXT,
+            bg=self.CARD,
+            anchor="w",
+            justify="left",
+        ).pack(anchor="w", padx=14, pady=(12, 4))
+        tk.Label(
+            inner,
+            text=description,
+            font=("맑은 고딕", 9),
+            fg=self.SUBTEXT,
+            bg=self.CARD,
+            anchor="w",
+            justify="left",
+            wraplength=260,
+        ).pack(anchor="w", padx=14, pady=(0, 12))
+
+        # 화면 밖으로 나가지 않도록, 필요하면 클릭 지점의 반대쪽에 붙인다.
+        tooltip.update_idletasks()
+        tooltip_width = tooltip.winfo_width()
+        tooltip_height = tooltip.winfo_height()
+        x = event.x_root + 16
+        y = event.y_root + 16
+        if x + tooltip_width > tooltip.winfo_screenwidth():
+            x = event.x_root - tooltip_width - 16
+        if y + tooltip_height > tooltip.winfo_screenheight():
+            y = event.y_root - tooltip_height - 16
+        tooltip.geometry(f"+{max(x, 0)}+{max(y, 0)}")
+
+        self._chart_tooltip = tooltip
+        self._chart_tooltip_source = source_widget
+
+    def _close_chart_tooltip(self):
+        """열려 있는 설명 툴팁이 있으면 닫는다."""
+        if self._chart_tooltip is not None:
+            self._chart_tooltip.destroy()
+            self._chart_tooltip = None
+            self._chart_tooltip_source = None
 
     def _show_training_result_view(self):
         """'모델 훈련 결과 보기' 버튼의 데이터 박스 화면을 구성한다."""
@@ -525,9 +608,9 @@ class NewsDashboard(tk.Tk):
     def _load_news_worker(self):
         """뉴스 크롤링 결과를 메인 UI 스레드에 전달한다."""
         try:
-            news_items = fetch_news_items()
+            news_items = self._crawler.fetch_news_items()
             self.after(0, self._show_news, news_items)
-        except (HTTPError, URLError, TimeoutError, RuntimeError, OSError) as error:
+        except CRAWL_ERRORS as error:
             self.after(0, self._show_error, str(error))
 
     def _show_news(self, news_items):
