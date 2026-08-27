@@ -9,17 +9,21 @@
 별도로 크롤링할 계획은 없으며, 앞으로도 `ai4i2020.csv`가 유일한 데이터 소스입니다.
 
 **모든 `.py`/`.ipynb`/`.csv` 파일은 `src/` 아래에 있습니다** (`src/UI/main.py`, `src/UI/crawler.py`,
-`src/UI/visualizer.py`, `src/EDA.ipynb`, `src/EDA2.ipynb`, `src/classifications.ipynb`,
-`src/regression.ipynb`, `src/modeling2.ipynb`, `src/ai4i2020.csv`). 아래 본문에서 파일명만 적었으면
-전부 `src/` 아래(단, Tkinter UI 3종은 `src/UI/` 아래)에 있다는 뜻입니다. Tkinter UI 3종(`main.py`/
-`crawler.py`/`visualizer.py`)만 서로 묶여서 `src/UI/`에 있고, 나머지 노트북/CSV는 그대로 `src/` 바로
-아래에 있습니다 — 세 파일이 `from crawler import ...`/`from visualizer import ...`처럼 같은 폴더 기준
-바로 임포트하기 때문에 항상 같이 옮겨야 합니다. `main.py`의 `DATA_PATH`는 `src/UI/`에서 한 단계 위
-`src/ai4i2020.csv`를 가리키도록 `Path(__file__).resolve().parent.parent`를 씁니다.
-`README.md`/`CLAUDE.md`/`docs/`/`images/`/`미니 프로젝트 흐름도.png`는 저장소 루트에 그대로 남아 있습니다
-— `images/`가 `src/` 밖에 있기 때문에 `EDA.ipynb`/`classifications.ipynb`의 `savefig()` 호출은
-`"../images/*.png"`처럼 한 단계 위로 올라가는 상대경로를 씁니다. 앞으로 `preprocessor.py` 등 새 모듈을
-추가할 때도 `src/` 안에 만드세요(단, Tkinter UI와 얽힌 모듈이면 `src/UI/` 안에).
+`src/UI/visualizer.py`, `src/UI/model_predictor.py`, `src/EDA.ipynb`, `src/EDA2.ipynb`,
+`src/classifications.ipynb`, `src/regression.ipynb`, `src/model_3.ipynb`, `src/ai4i2020.csv`). 아래
+본문에서 파일명만 적었으면 전부 `src/` 아래(단, Tkinter UI와 얽힌 4종은 `src/UI/` 아래)에 있다는
+뜻입니다. Tkinter UI 4종(`main.py`/`crawler.py`/`visualizer.py`/`model_predictor.py`)만 서로 묶여서
+`src/UI/`에 있고, 나머지 노트북/CSV는 그대로 `src/` 바로 아래에 있습니다 — `main.py`가
+`from crawler import ...`/`from visualizer import ...`/`from model_predictor import ...`처럼 같은
+폴더 기준 바로 임포트하기 때문에 항상 같이 옮겨야 합니다. `main.py`의 `DATA_PATH`는 `src/UI/`에서
+한 단계 위 `src/ai4i2020.csv`를 가리키도록 `Path(__file__).resolve().parent.parent`를 쓰고,
+`model_predictor.py`의 `MODEL_PATH`는 `src/UI/`에서 두 단계 위(저장소 루트) `model/`을 가리키도록
+`Path(__file__).resolve().parent.parent.parent`를 씁니다.
+`README.md`/`CLAUDE.md`/`docs/`/`images/`/`model/`/`미니 프로젝트 흐름도.png`는 저장소 루트에 그대로
+남아 있습니다 — `images/`/`model/`이 `src/` 밖에 있기 때문에 `EDA.ipynb`/`classifications.ipynb`/
+`model_3.ipynb`의 `savefig()`/`joblib.dump()` 호출은 `"../images/*.png"`/`"../model/*.joblib"`처럼
+한 단계 위로 올라가는 상대경로를 씁니다. 앞으로 `preprocessor.py` 등 새 모듈을 추가할 때도 `src/`
+안에 만드세요(단, Tkinter UI와 얽힌 모듈이면 `src/UI/` 안에).
 
 1. **EDA 노트북** (`EDA.ipynb`, `EDA2.ipynb`) — `ai4i2020.csv` 분석. 완료되었으며 `README.md`에 정리되어 있음.
 2. **`classifications.ipynb`** — `Type`(품질 등급 L/M/H)을 맞히는 다중분류 모델 4종(Random Forest, XGBoost,
@@ -33,8 +37,9 @@
    실제 업계 뉴스로 뒷받침/검증해 보는" 용도로 자리를 잡았다는 점이 중요합니다 — 자세한 설계는 아래
    `main.py`/`visualizer.py` 절 참고. 실제 수집 로직은 `crawler.py`의 `DataCrawler`에 있습니다. 왼쪽
    패널의 **"전체 데이터 한 눈에 보기" 화면은 구현 완료**되어 `ai4i2020.csv`를 요약 카드 4개 + 그래프
-   12개로 렌더링합니다. "모델 훈련 결과 보기"와 "모델 입력하기" → 예측 연동은 아직 자리표시자
-   (placeholder) 상태입니다 (아래 절 참고).
+   12개로 렌더링합니다. **"모델 훈련 결과 보기"와 "모델 입력하기" → 예측 연동도 구현 완료**됐습니다 —
+   `src/model_3.ipynb`가 학습한 Random Forest(Enhanced 피처셋) 모델을 `model/random_forest_enhanced.joblib`
+   로 저장해 두고, `src/UI/model_predictor.py`가 이를 불러와 두 화면에 각각 연결합니다 (아래 절 참고).
 4. **`미니 프로젝트 흐름도.png`** — 원래 구상했던 더 큰 파이프라인
    ("현대오토에버 제조데이터 미니 프로젝트 (분류/회귀)")의 흐름도 스펙: 크롤링 → 전처리 → 시각화(EDA) →
    리터러시(Q→A) → 모델링(분류/회귀) → 평가 → 저장 → 보고서, `crawler.py`/`preprocessor.py`/`visualizer.py`/
@@ -64,7 +69,13 @@ jupyter nbconvert --to notebook --execute --inplace src/EDA.ipynb
 # Type(L/M/H) 분류 모델 비교 노트북 재실행 (images/model_*.png를 재생성함)
 jupyter nbconvert --to notebook --execute --inplace src/classifications.ipynb
 
-# Tkinter 앱 실행 (저장소 루트에서 실행. 네이버 뉴스 크롤링을 위해 인터넷 연결 필요)
+# Machine failure(정상/불량) 이진분류 노트북 재실행 (images/modeling2_*.png와
+# model/random_forest_enhanced.joblib을 재생성함 — UI가 이 joblib 파일을 그대로 불러 씀)
+jupyter nbconvert --to notebook --execute --inplace src/model_3.ipynb
+
+# Tkinter 앱 실행 (저장소 루트에서 실행. 네이버 뉴스 크롤링을 위해 인터넷 연결 필요.
+# "모델 훈련 결과 보기"/"모델 입력하기" 탭을 쓰려면 위 model_3.ipynb를 먼저 한 번 실행해
+# model/random_forest_enhanced.joblib이 있어야 함)
 python src/UI/main.py
 ```
 
@@ -146,6 +157,36 @@ speed`, `Tool wear`, `Machine failure`/고장 모드 플래그로 `Torque [Nm]`�
   보면 "모델을 더 좋은 걸 썼는가"보다 "타겟이 특성들과 실제로 관계가 있는가"가 예측 성능을 훨씬 크게
   좌우한다는 점을 대조적으로 확인할 수 있다.
 
+### `src/model_3.ipynb` — `Machine failure`(정상/불량) 이진분류, UI에 실제로 배포된 모델
+`classifications.ipynb`(Type 다중분류)/`regression.ipynb`(Torque 회귀)와 짝을 이루는 세 번째 모델링
+노트북으로, 이 미니 프로젝트의 확정 주제인 정상/불량 이진분류를 직접 다룹니다. **주의**: 노트북 파일명은
+`model_3.ipynb`이지만 내부 markdown/`savefig()`/`joblib.dump()` 경로는 과거 이름인 `modeling2`를 그대로
+쓰고 있습니다(`../images/modeling2_*.png`, `docs/modeling2_binary_eda.md`, 노트북 안내 문구의
+`src/modeling2.ipynb`) — 리네임 후 내부 문구를 안 고친 상태이니 새로 셀을 추가할 때 파일명이 아니라
+`modeling2_` 접두어 컨벤션을 그대로 따르면 됩니다(혼동 방지용으로만 알아두면 됨, 지금 당장 고칠 필요는
+없음).
+
+1. **데이터 로드/전처리** — `EDA2.ipynb`와 동일하게 컬럼명·`Type` 공백 strip, 식별자(`UDI`/`Product ID`)와
+   타겟과 사실상 동치인 세부 고장 모드 컬럼(`TWF`~`RNF`) 제거.
+2. **EDA** — `machine_failure` 클래스 불균형(불량 3.39%) 재확인, 원본/파생 변수별 정상·불량 박스플롯.
+3. **피처 엔지니어링(위험구간 zone 플래그)** — `temp_diff`/`machanical_power`/`tool_stress`에 더해,
+   AI4I 2020 공식 문서의 세부 고장 모드 임계값 규칙(라벨 자체가 아니라 원본 입력 변수로 재계산 — 데이터
+   누수 아님)으로 `hdf_zone`/`pwf_zone`/`osf_zone`(Type별 임계값 L=11000/M=12000/H=13000)/`high_wear`
+   4개 플래그와 이를 합산한 `risk_zone_count`(0~4)를 만듭니다. `risk_zone_count`가 원본 변수를 통틀어
+   `machine_failure`와 가장 강한 상관관계를 보입니다. **`src/UI/model_predictor.py`의
+   `build_feature_row()`가 이 계산을 그대로 재구현**하므로, 여기 로직을 고치면 그쪽도 같이 고쳐야
+   합니다.
+4. **모델링** — Random Forest/XGBoost/LightGBM × Baseline(원본 7개)/Enhanced(zone 포함 15개) 총 6가지
+   조합 비교. zone 피처 추가 효과는 3개 모델 전부에서 재현됨(F1 상승). **Enhanced 피처셋의 Random
+   Forest**가 F1 0.912·정밀도 1.000·재현율 0.838·AUC 0.973로 6개 조합 중 가장 좋습니다.
+5. **결론** — 6개 조합 지표 표 + 해석(`docs/modeling2_binary_eda.md`에도 정리).
+6. **모델 저장** (**구현 완료**) — 5번에서 가장 좋았던 Random Forest(Enhanced)를
+   `../model/random_forest_enhanced.joblib`에 저장합니다. 4-1 학습 루프가 `feature_sets`를
+   `{"Baseline", "Enhanced"}` 순서로 돌기 때문에 루프가 끝난 시점의 `models["Random Forest"]`가 곧
+   Enhanced로 학습된 RF라는 점을 이용합니다. `joblib.dump()`로 `{"model": ..., "features": enhanced_cols,
+   "metrics": eval_results["Random Forest (Enhanced)"]}`를 같이 저장해서, `model_predictor.py`가 예측에
+   쓸 피처 순서와 "모델 훈련 결과 보기" 탭에 보여줄 지표를 모델 파일 하나에서 전부 읽어가게 합니다.
+
 ### `src/UI/main.py` — Tkinter 데스크톱 UI 셸 (UI 전용, 크롤링/그래프 내용은 모른다)
 하나의 `Frame` 안에서 `grid`로 좌/우를 나눈 단일 파일 앱입니다. **`main.py`는 위젯 조립만 담당하고, "무엇을
 그릴지"/"무엇을 어떻게 수집할지"는 전혀 알지 못합니다** — 그래프는 `visualizer.py`의 `Visualizer`, 크롤링은
@@ -199,8 +240,14 @@ speed`, `Tool wear`, `Machine failure`/고장 모드 플래그로 `Torque [Nm]`�
       (뉴스 패널의 마지막 검색 결과는 유지됨). 카드 쪽 클릭 핸들러가 `"break"`를 반환해,
       `self.bind("<Button-1>", ...)`으로 걸어둔 "빈 곳 클릭 시 닫기" 바인딩과 충돌하지 않도록 되어 있습니다
       — 새로운 클릭형 위젯을 추가할 때 이 패턴을 참고하세요.
-  - `_show_training_result_view()`는 아직 `[모델 훈련 결과 화면 연결 위치]` 주석이 달린 자리표시자입니다 —
-    위 프로젝트 결정에 따라 모델링/평가와 함께 나중으로 미룹니다.
+  - `_show_training_result_view()` (**구현 완료**)는 `model_predictor.get_metrics()`로 배포된 모델
+    (Random Forest, Enhanced 피처셋)의 정확도/정밀도/재현율/F1-score/AUC를 읽어 `_build_metric_tiles()`로
+    요약 카드 5개를 그리고, `_build_training_chart_grid()`로 `model_3.ipynb`가 이미 만들어 둔 비교 그래프
+    PNG 2장(`model_predictor.TRAINING_RESULT_CHARTS` — 모델 3종×피처셋 2종 지표 비교, 혼동행렬 비교)을
+    보여줍니다. 6개 조합 전체가 아니라 **배포된 모델 하나만** 카드로 요약하고, 나머지 5개 조합과의
+    비교는 이미지 안에 이미 다 들어있어 별도 표를 안 만들었습니다. `model/random_forest_enhanced.joblib`
+    또는 `images/modeling2_*.png`가 없으면 `_show_data_error()`로 안내합니다 — 즉 숫자를 이 파일이나
+    `main.py`에 하드코딩하지 않고, **모델 파일(`metrics` 키)을 지표의 단일 출처로 둡니다.**
   - **입력 `Entry` 6개는 "모델 입력하기" 탭에서만 보인다.** 예전에는 `_build_ui()`가 `input_row`를
     좌측 상단에 고정으로 항상 그렸지만, 지금은 그 자리에 아무것도 없고 `_show_model_input_view()`가
     `selected_index == 2`일 때만 `self.data_box` 안에 폼을 새로 그립니다. `MODEL_INPUT_NAMES =
@@ -209,13 +256,20 @@ speed`, `Tool wear`, `Machine failure`/고장 모드 플래그로 `Torque [Nm]`�
     `MODEL_INPUT_LABELS`(예: `"air_temp"` → `"기온"`) 딕셔너리로 한글로 표시합니다. 새 입력 필드를
     추가하면 `MODEL_INPUT_NAMES`뿐 아니라 `MODEL_INPUT_LABELS`에도 한글 라벨을 같이 채워야 합니다.
   - 이 탭의 흐름: `_show_model_input_view()`가 폼 + "입력값 저장" 버튼 + 요약 영역
-    (`self._model_input_summary_area`)을 그리고, 버튼을 누르면(탭 전환 시 자동 저장이 아님)
-    `_save_model_inputs()`가 6개 입력값을 `self.model_input_values`에 담고 `self.<name>` 속성에도 동일한
-    값을 반영한 뒤 `_render_model_input_summary()`로 요약을 다시 그리고 `_on_model_input_saved()`를
-    호출합니다 — 실제 `model.predict(...)` 호출을 연결할 지점으로 표시되어 있으며
-    (`# Data 모델링 팀이 예측 함수 호출 코드를 연결할 위치다`), 현재는 값을 `print()`만 합니다. 모델링
-    단계로 미룬 상태입니다. 입력값은 `self.model_input_vars`(탭 전환과 무관하게 살아있는
-    `tk.StringVar`)에 보관되므로, 저장하지 않고 다른 탭에 갔다 와도 입력하던 값은 유지됩니다.
+    (`self._model_input_summary_area`) + 예측 결과 영역(`self._model_prediction_area`)을 그리고, 버튼을
+    누르면(탭 전환 시 자동 저장이 아님) `_save_model_inputs()`가 6개 입력값을 `self.model_input_values`에
+    담고 `self.<name>` 속성에도 동일한 값을 반영한 뒤 `_render_model_input_summary()`로 요약을 다시
+    그리고 `_on_model_input_saved()`를 호출합니다 — **구현 완료**: `model_predictor.predict(values)`를
+    호출해 배포된 Random Forest(Enhanced) 모델로 정상/불량과 불량 확률을 예측하고,
+    `_render_prediction_result()`가 결과를 `STATUS_GOOD`/`STATUS_CRITICAL` 색으로 표시합니다.
+    `values`(6개 축약 입력)를 모델이 실제로 쓰는 15개 피처(파생변수 포함)로 바꾸는 로직은 `main.py`가
+    아니라 `model_predictor.build_feature_row()`에 있습니다(`model_3.ipynb` 3-1의 위험구간 계산과 완전히
+    동일한 로직을 재사용 — 로직이 갈라지지 않도록 나중에 노트북 쪽 계산을 고치면 이 함수도 같이
+    고쳐야 합니다). 빈 값/숫자가 아닌 값/L·M·H가 아닌 `type` 등은 `model_predictor.PREDICTION_ERRORS`로
+    잡아 에러 메시지를 그대로 보여줍니다(예측은 크롤링과 달리 네트워크 지연이 없어 별도 스레드 없이
+    버튼 클릭 시 동기로 실행). 입력값은 `self.model_input_vars`(탭 전환과 무관하게 살아있는
+    `tk.StringVar`)에, 마지막 예측 결과/에러는 `self._last_prediction_result`/`self._last_prediction_error`
+    에 보관되므로, 저장하지 않고 다른 탭에 갔다 와도 입력값과 예측 결과가 모두 유지됩니다.
 
 ### `src/UI/visualizer.py` — 그래프 전용 모듈 (Tkinter를 모른다)
 `ai4i2020.csv`를 `matplotlib`으로 그리는 로직만 담당하며, Tkinter는 import조차 하지 않습니다. 흐름도가
@@ -273,6 +327,38 @@ speed`, `Tool wear`, `Machine failure`/고장 모드 플래그로 `Torque [Nm]`�
 - `main.py`가 아닌 다른 곳에서도 재사용할 수 있도록, `DataCrawler`는 Tkinter나 UI 상태에 의존하지 않고
   순수하게 "검색어 → HTML → 기사 목록"만 다룹니다.
 
+### `src/UI/model_predictor.py` — 예측 전용 모듈 (Tkinter를 모른다)
+`src/model_3.ipynb`가 저장한 학습된 모델을 불러와 예측/평가지표를 돌려주는 로직만 담당하며, `crawler.py`/
+`visualizer.py`처럼 Tkinter는 import조차 하지 않습니다.
+
+- `MODEL_PATH` — 저장소 루트 `model/random_forest_enhanced.joblib`을 가리킵니다. 이 파일은
+  `{"model": RandomForestClassifier, "features": [...15개 컬럼명...], "metrics": {...}}` 형태의
+  딕셔너리이며, `model_3.ipynb`의 "6. 모델 저장" 셀이 만듭니다(4-1 학습 루프의 마지막 반복인 Enhanced
+  피처셋 상태가 그대로 남아 있는 걸 이용 — `models["Random Forest"]`가 곧 Enhanced로 학습된 RF).
+- `load_artifact()` — joblib 파일을 최초 1회만 읽어 모듈 전역에 캐시합니다. 파일이 없으면
+  `FileNotFoundError`(어떤 노트북을 먼저 실행해야 하는지 안내하는 메시지 포함)를 던집니다.
+- `get_metrics()` — 저장된 `metrics`(정확도/정밀도/재현율/F1-score/AUC, 한글 키)를 그대로 반환합니다.
+  "모델 훈련 결과 보기" 탭이 이 값을 그대로 쓰므로, **지표 숫자를 `main.py`나 이 문서에 하드코딩하지
+  않고 모델 파일 자체를 단일 출처로 둡니다** — 나중에 노트북을 재실행해 모델이 바뀌면 숫자도 자동으로
+  같이 바뀝니다.
+- `build_feature_row(values)` — `main.py`의 `MODEL_INPUT_NAMES` 6개 축약 입력(문자열 dict)을 모델이
+  실제로 학습한 15개 피처(원본 5개 + `Type` 원-핫 2개 + `model_3.ipynb` 3-1과 동일한 파생변수
+  `temp_diff`/`machanical_power`/`tool_stress`/`hdf_zone`/`pwf_zone`/`osf_zone`/`high_wear`/
+  `risk_zone_count`)로 변환한 1행짜리 `DataFrame`을 만듭니다. 컬럼 순서는 하드코딩하지 않고 저장된
+  `features` 목록을 그대로 따릅니다. 빈 값/숫자 변환 실패/`type`이 L·M·H가 아님을 각각 검증해
+  `ValueError`로 던집니다.
+- `predict(values)` — `build_feature_row()` + `model.predict()`/`predict_proba()`를 실행해
+  `{"label": "정상"/"불량", "is_failure": bool, "failure_probability": float}`을 반환합니다.
+- `PREDICTION_ERRORS` — `main.py`가 예측 실패를 잡을 때 쓰는 예외 튜플(`FileNotFoundError`,
+  `ValueError`, `KeyError`) — `crawler.CRAWL_ERRORS`와 같은 패턴입니다.
+- `TRAINING_RESULT_CHARTS` — "모델 훈련 결과 보기" 탭이 보여줄 `(제목, 이미지 경로, 설명)` 튜플 목록.
+  `model_3.ipynb`가 이미 만들어 둔 `images/modeling2_model_comparison.png`/
+  `images/modeling2_confusion_matrices.png`를 가리킵니다 — 새 비교 그래프를 추가하려면 노트북에서 먼저
+  이미지를 만들고 이 튜플에 추가하세요.
+- 이 모듈이 계산하는 위험구간 파생변수 로직은 `model_3.ipynb` 3-1과 **완전히 동일해야** 합니다. 노트북
+  쪽 계산식(임계값, AND/OR 조건 등)을 고치면 이 파일의 `build_feature_row()`도 반드시 같이 고치세요 —
+  두 곳이 어긋나면 노트북에서 학습한 모델과 UI가 실제로 넣어주는 입력이 서로 달라집니다.
+
 ### 목표 파이프라인 모듈 (`미니 프로젝트 흐름도.png` 기준)
 나중에 파이프라인의 나머지를 만들 때는, 새 이름을 만들지 말고 흐름도가 지정한 아래 모듈/클래스/함수
 구성을 따라야 `main.py`의 UI 연결 지점들과 자연스럽게 이어집니다:
@@ -283,7 +369,7 @@ speed`, `Tool wear`, `Machine failure`/고장 모드 플래그로 `Torque [Nm]`�
 | `preprocessor.py` | `Preprocessor` | `load()`, `clean_missing()`, `encode()`, `scale()`, `feature_engineering()`, `save_processed()` | 미구현, 보류 |
 | `visualizer.py` | `Visualizer` | `plot_dist()`, `plot_corr()`, `plot_box()`, `plot_scatter()` | **구현 완료** (위 절 참고) |
 | `literacy.py` | `Literacy` | `ask_question()`, `analyze()`, `answer_qa()` | 미구현, 보류 |
-| `modeling.py` | `Modeler` | `train()`, `predict()`, `save_model()` | 미구현, 보류 |
+| `modeling.py` | `Modeler` | `train()`, `predict()`, `save_model()` | 미구현, 보류 — 단, `train()`/`save_model()`에 해당하는 작업은 `src/model_3.ipynb`가, `predict()`에 해당하는 작업은 `src/UI/model_predictor.py`가 이 모듈 밖에서 이미 수행 중 (아래 두 절 참고). 나중에 `modeling.py`를 만들 때는 이 둘의 로직을 옮기는 리팩터링에 가깝습니다. |
 | `evaluation.py` | `Evaluator` | `classification_metrics()`, `regression_metrics()`, `plot_confusion()` | 미구현, 보류 |
 | `report.py` | (모듈 함수) | `make_report()`, `save_html()`, `save_pdf()` | 미구현, 보류 |
 
