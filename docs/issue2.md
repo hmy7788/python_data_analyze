@@ -2,10 +2,6 @@
 
 컬럼 이름에 대괄호(`[`, `]`)가 있으면 XGBoost가 거부하는 에러 (`ValueError: feature_names must be string, and may not contain [, ] or <`)
 
-# 문제 화면 캡처
-
-> (아래 코드를 그대로 실행한 뒤 에러 화면을 캡처해서 이 자리에 붙여넣으세요)
-
 ```python
 model = XGBClassifier()
 model.fit(X_train, y_train)
