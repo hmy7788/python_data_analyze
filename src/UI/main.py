@@ -11,8 +11,8 @@ from crawler import CRAWL_ERRORS, NEWS_COUNT, DataCrawler, open_in_chrome
 from visualizer import STATUS_CRITICAL, STATUS_GOOD, Visualizer
 
 
-# CNC 설비 정상/불량 판별에 쓸 원본 데이터. main.py와 같은 폴더에 있다고 가정한다.
-DATA_PATH = Path(__file__).resolve().parent / "ai4i2020.csv"
+# CNC 설비 정상/불량 판별에 쓸 원본 데이터. main.py는 src/UI/에 있고 CSV는 한 단계 위 src/에 있다.
+DATA_PATH = Path(__file__).resolve().parent.parent / "ai4i2020.csv"
 # 왼쪽 입력칸의 화면 배치 순서이자 모델에 전달할 변수명이다.
 MODEL_INPUT_NAMES = (
     "type",

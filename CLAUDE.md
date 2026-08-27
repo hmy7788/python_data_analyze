@@ -8,13 +8,18 @@
 이미 저장소에 있는 UCI AI4I 2020 Predictive Maintenance 데이터셋(`ai4i2020.csv`)을 사용합니다. 제조 데이터를
 별도로 크롤링할 계획은 없으며, 앞으로도 `ai4i2020.csv`가 유일한 데이터 소스입니다.
 
-**모든 `.py`/`.ipynb`/`.csv` 파일은 `src/` 아래에 있습니다** (`src/main.py`, `src/crawler.py`,
-`src/visualizer.py`, `src/EDA.ipynb`, `src/EDA2.ipynb`, `src/classifications.ipynb`,
-`src/regression.ipynb`, `src/ai4i2020.csv`). 아래 본문에서 파일명만 적었으면 전부 `src/` 아래에 있다는 뜻입니다.
+**모든 `.py`/`.ipynb`/`.csv` 파일은 `src/` 아래에 있습니다** (`src/UI/main.py`, `src/UI/crawler.py`,
+`src/UI/visualizer.py`, `src/EDA.ipynb`, `src/EDA2.ipynb`, `src/classifications.ipynb`,
+`src/regression.ipynb`, `src/modeling2.ipynb`, `src/ai4i2020.csv`). 아래 본문에서 파일명만 적었으면
+전부 `src/` 아래(단, Tkinter UI 3종은 `src/UI/` 아래)에 있다는 뜻입니다. Tkinter UI 3종(`main.py`/
+`crawler.py`/`visualizer.py`)만 서로 묶여서 `src/UI/`에 있고, 나머지 노트북/CSV는 그대로 `src/` 바로
+아래에 있습니다 — 세 파일이 `from crawler import ...`/`from visualizer import ...`처럼 같은 폴더 기준
+바로 임포트하기 때문에 항상 같이 옮겨야 합니다. `main.py`의 `DATA_PATH`는 `src/UI/`에서 한 단계 위
+`src/ai4i2020.csv`를 가리키도록 `Path(__file__).resolve().parent.parent`를 씁니다.
 `README.md`/`CLAUDE.md`/`docs/`/`images/`/`미니 프로젝트 흐름도.png`는 저장소 루트에 그대로 남아 있습니다
 — `images/`가 `src/` 밖에 있기 때문에 `EDA.ipynb`/`classifications.ipynb`의 `savefig()` 호출은
 `"../images/*.png"`처럼 한 단계 위로 올라가는 상대경로를 씁니다. 앞으로 `preprocessor.py` 등 새 모듈을
-추가할 때도 `src/` 안에 만드세요.
+추가할 때도 `src/` 안에 만드세요(단, Tkinter UI와 얽힌 모듈이면 `src/UI/` 안에).
 
 1. **EDA 노트북** (`EDA.ipynb`, `EDA2.ipynb`) — `ai4i2020.csv` 분석. 완료되었으며 `README.md`에 정리되어 있음.
 2. **`classifications.ipynb`** — `Type`(품질 등급 L/M/H)을 맞히는 다중분류 모델 4종(Random Forest, XGBoost,
@@ -60,7 +65,7 @@ jupyter nbconvert --to notebook --execute --inplace src/EDA.ipynb
 jupyter nbconvert --to notebook --execute --inplace src/classifications.ipynb
 
 # Tkinter 앱 실행 (저장소 루트에서 실행. 네이버 뉴스 크롤링을 위해 인터넷 연결 필요)
-python src/main.py
+python src/UI/main.py
 ```
 
 ## 아키텍처
@@ -141,7 +146,7 @@ speed`, `Tool wear`, `Machine failure`/고장 모드 플래그로 `Torque [Nm]`�
   보면 "모델을 더 좋은 걸 썼는가"보다 "타겟이 특성들과 실제로 관계가 있는가"가 예측 성능을 훨씬 크게
   좌우한다는 점을 대조적으로 확인할 수 있다.
 
-### `src/main.py` — Tkinter 데스크톱 UI 셸 (UI 전용, 크롤링/그래프 내용은 모른다)
+### `src/UI/main.py` — Tkinter 데스크톱 UI 셸 (UI 전용, 크롤링/그래프 내용은 모른다)
 하나의 `Frame` 안에서 `grid`로 좌/우를 나눈 단일 파일 앱입니다. **`main.py`는 위젯 조립만 담당하고, "무엇을
 그릴지"/"무엇을 어떻게 수집할지"는 전혀 알지 못합니다** — 그래프는 `visualizer.py`의 `Visualizer`, 크롤링은
 `crawler.py`의 `DataCrawler`에 위임합니다.
@@ -212,7 +217,7 @@ speed`, `Tool wear`, `Machine failure`/고장 모드 플래그로 `Torque [Nm]`�
     단계로 미룬 상태입니다. 입력값은 `self.model_input_vars`(탭 전환과 무관하게 살아있는
     `tk.StringVar`)에 보관되므로, 저장하지 않고 다른 탭에 갔다 와도 입력하던 값은 유지됩니다.
 
-### `src/visualizer.py` — 그래프 전용 모듈 (Tkinter를 모른다)
+### `src/UI/visualizer.py` — 그래프 전용 모듈 (Tkinter를 모른다)
 `ai4i2020.csv`를 `matplotlib`으로 그리는 로직만 담당하며, Tkinter는 import조차 하지 않습니다. 흐름도가
 지정한 `visualizer.py` / `Visualizer` 이름과 `plot_dist()`/`plot_corr()`/`plot_box()`/`plot_scatter()`
 메서드 이름을 그대로 따랐습니다 (아래 "목표 파이프라인 모듈" 표 참고 — 이 모듈은 예정보다 먼저 구현됨).
@@ -248,7 +253,7 @@ speed`, `Tool wear`, `Machine failure`/고장 모드 플래그로 `Torque [Nm]`�
 - `main.py`가 아닌 다른 곳(예: 나중의 `report.py`)에서도 그대로 재사용할 수 있도록, `Visualizer`는 Tkinter나
   파일 경로에 의존하지 않고 순수하게 `DataFrame` → `matplotlib` `Figure`/`Axes`만 다룹니다.
 
-### `src/crawler.py` — 크롤링 전용 모듈 (Tkinter를 모른다)
+### `src/UI/crawler.py` — 크롤링 전용 모듈 (Tkinter를 모른다)
 네이버 뉴스 검색 결과를 가져오는 로직만 담당하며, Tkinter는 import조차 하지 않습니다. 흐름도가 지정한
 `crawler.py` / `DataCrawler` 이름과 `collect()`/`parse()` 메서드 이름을 따랐습니다 (아래 "목표 파이프라인
 모듈" 표 참고 — `save_raw()`는 아직 미구현: 지금은 UI가 매번 새로 불러올 뿐 수집 결과를 파일로 남기지
