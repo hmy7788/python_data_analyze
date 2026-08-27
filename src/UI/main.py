@@ -3,11 +3,13 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
 
+import matplotlib.image as mpimg
 import pandas as pd
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
 from crawler import CRAWL_ERRORS, NEWS_COUNT, DataCrawler, open_in_chrome
+from model_predictor import PREDICTION_ERRORS, TRAINING_RESULT_CHARTS, get_metrics, predict
 from visualizer import STATUS_CRITICAL, STATUS_GOOD, Visualizer
 
 
@@ -76,6 +78,9 @@ class NewsDashboard(tk.Tk):
             name: tk.StringVar(value="") for name in MODEL_INPUT_NAMES
         }
         self.model_input_values = {name: "" for name in MODEL_INPUT_NAMES}
+        # 마지막 예측 결과/에러. 탭을 벗어났다가 돌아와도 화면에 다시 보여주기 위해 보관한다.
+        self._last_prediction_result = None
+        self._last_prediction_error = None
 
         # Data 모델링 코드에서 self.air_temp처럼 직접 접근할 수도 있게 초기화한다.
         for name in MODEL_INPUT_NAMES:
@@ -502,19 +507,108 @@ class NewsDashboard(tk.Tk):
             self._chart_tooltip_source = None
 
     def _show_training_result_view(self):
-        """'모델 훈련 결과 보기' 버튼의 데이터 박스 화면을 구성한다."""
+        """'모델 훈련 결과 보기' 버튼의 데이터 박스 화면을 구성한다.
+
+        model_3.ipynb가 model/random_forest_enhanced.joblib에 같이 저장해 둔 metrics를
+        읽어 보여준다 — 숫자를 이 파일에 하드코딩하지 않고 모델 파일을 단일 출처로 둔다.
+        """
         self._clear_data_box()
 
-        # [모델 훈련 결과 화면 연결 위치]
-        # 추후 정확도, 손실값, 혼동행렬, 훈련 그래프로 안내 문구를 교체하면 된다.
-        # 생성한 위젯의 부모는 self.data_box로 지정한다.
+        try:
+            metrics = get_metrics()
+        except PREDICTION_ERRORS as error:
+            self._show_data_error(str(error))
+            return
+
+        scroll_area = self._make_scrollable(self.data_box)
+
         tk.Label(
-            self.data_box,
-            text="여기에 훈련 결과를 보여주세요",
-            font=("맑은 고딕", 15, "bold"),
-            fg=self.SUBTEXT,
+            scroll_area,
+            text=f"배포된 모델: {metrics['모델']} ({metrics['피처셋']} 피처셋)",
+            font=("맑은 고딕", 10, "bold"),
+            fg=self.TEXT,
             bg="#FAFBFC",
-        ).place(relx=0.5, rely=0.5, anchor="center")
+        ).pack(anchor="w", padx=12, pady=(12, 0))
+
+        self._build_metric_tiles(scroll_area, metrics)
+        self._build_training_chart_grid(scroll_area, TRAINING_RESULT_CHARTS)
+
+    def _build_metric_tiles(self, parent, metrics):
+        """배포된 모델의 평가지표 5개(정확도/정밀도/재현율/F1-score/AUC)를 카드로 보여준다."""
+        tile_specs = (
+            ("정확도", metrics["정확도"]),
+            ("정밀도", metrics["정밀도"]),
+            ("재현율", metrics["재현율"]),
+            ("F1-score", metrics["F1-score"]),
+            ("AUC", metrics["AUC"]),
+        )
+
+        row = tk.Frame(parent, bg="#FAFBFC")
+        row.pack(fill="x", padx=12, pady=(10, 4))
+        for index, (label, value) in enumerate(tile_specs):
+            row.grid_columnconfigure(index, weight=1, uniform="metric-tile")
+            tile = tk.Frame(
+                row, bg=self.CARD, highlightbackground=self.BORDER, highlightthickness=1
+            )
+            tile.grid(row=0, column=index, sticky="ew", padx=(0 if index == 0 else 6, 0))
+            tk.Label(
+                tile, text=f"{value:.3f}", font=("맑은 고딕", 16, "bold"), fg=self.GREEN, bg=self.CARD
+            ).pack(pady=(12, 0))
+            tk.Label(
+                tile, text=label, font=("맑은 고딕", 9), fg=self.SUBTEXT, bg=self.CARD
+            ).pack(pady=(0, 12))
+
+    def _build_training_chart_grid(self, parent, chart_specs):
+        """model_3.ipynb가 미리 생성해 둔 비교 그래프 PNG를 카드로 보여준다.
+
+        chart_specs는 model_predictor.TRAINING_RESULT_CHARTS의 (제목, 이미지 경로, 설명) 튜플.
+        전체 데이터 화면의 _build_chart_grid와 달리 실시간 matplotlib 그리기가 아니라
+        이미 저장된 이미지를 읽어 보여주는 것뿐이라 클릭/뉴스 검색 연동은 없다.
+        """
+        grid = tk.Frame(parent, bg="#FAFBFC")
+        grid.pack(fill="both", expand=True, padx=12, pady=(6, 16))
+        grid.grid_columnconfigure(0, weight=1, uniform="training-chart-col")
+
+        for index, (title, image_path, description) in enumerate(chart_specs):
+            card = tk.Frame(
+                grid, bg=self.CARD, highlightbackground=self.BORDER, highlightthickness=1
+            )
+            card.grid(row=index, column=0, sticky="nsew", pady=(0, 12))
+
+            tk.Label(
+                card, text=title, font=("맑은 고딕", 10, "bold"), fg=self.TEXT, bg=self.CARD
+            ).pack(anchor="w", padx=12, pady=(10, 0))
+            tk.Label(
+                card,
+                text=description,
+                font=("맑은 고딕", 9),
+                fg=self.SUBTEXT,
+                bg=self.CARD,
+                wraplength=560,
+                justify="left",
+            ).pack(anchor="w", padx=12, pady=(4, 0))
+
+            if not image_path.exists():
+                tk.Label(
+                    card,
+                    text=f"이미지를 찾을 수 없습니다: {image_path.name}",
+                    font=("맑은 고딕", 9),
+                    fg="#B42318",
+                    bg=self.CARD,
+                ).pack(anchor="w", padx=12, pady=(0, 10))
+                continue
+
+            figure = Figure(figsize=(7.2, 3.8), dpi=100)
+            axes = figure.add_subplot(1, 1, 1)
+            axes.imshow(mpimg.imread(image_path))
+            axes.axis("off")
+            figure.tight_layout(pad=0)
+
+            canvas = FigureCanvasTkAgg(figure, master=card)
+            canvas.draw()
+            canvas_widget = canvas.get_tk_widget()
+            canvas_widget.configure(bg=self.CARD, highlightthickness=0)
+            canvas_widget.pack(fill="both", expand=True, padx=10, pady=(6, 10))
 
     def _show_model_input_view(self):
         """'모델 입력하기' 탭 화면을 구성한다. 입력 필드 6개는 이 탭에서만 보인다."""
@@ -576,6 +670,13 @@ class NewsDashboard(tk.Tk):
         self._model_input_summary_area.pack(fill="both", expand=True)
         self._render_model_input_summary()
 
+        tk.Frame(container, height=1, bg=self.BORDER).pack(fill="x", pady=(16, 16))
+
+        # 예측 결과(또는 에러) 영역. 탭을 벗어났다가 돌아와도 마지막 결과를 그대로 보여준다.
+        self._model_prediction_area = tk.Frame(container, bg="#FAFBFC")
+        self._model_prediction_area.pack(fill="x")
+        self._render_prediction_result(self._last_prediction_result, self._last_prediction_error)
+
     def _save_model_inputs(self):
         """6개 Entry 값을 이름에 맞춰 모델 입력 변수로 저장한다. '입력값 저장' 버튼에서 호출된다."""
         self.model_input_values = {
@@ -625,10 +726,53 @@ class NewsDashboard(tk.Tk):
             ).grid(row=row, column=1, sticky="w", pady=4)
 
     def _on_model_input_saved(self, values):
-        """Data 모델링 팀이 예측 함수 호출 코드를 연결할 위치다."""
-        # 예: prediction = model.predict([[values["air_temp"], ...]])
-        # 현재는 연결 여부를 쉽게 확인할 수 있도록 콘솔에 값만 출력한다.
-        print("모델 입력값:", values)
+        """저장된 입력값으로 배포된 모델(Random Forest, Enhanced)의 예측을 실행한다."""
+        try:
+            self._last_prediction_result = predict(values)
+            self._last_prediction_error = None
+        except PREDICTION_ERRORS as error:
+            self._last_prediction_result = None
+            self._last_prediction_error = str(error)
+        self._render_prediction_result(self._last_prediction_result, self._last_prediction_error)
+
+    def _render_prediction_result(self, result, error):
+        """예측 결과(또는 에러)를 _model_prediction_area에 다시 그린다."""
+        for widget in self._model_prediction_area.winfo_children():
+            widget.destroy()
+
+        if error is not None:
+            tk.Label(
+                self._model_prediction_area,
+                text=f"예측을 실행하지 못했습니다.\n({error})",
+                font=("맑은 고딕", 10),
+                fg="#B42318",
+                bg="#FAFBFC",
+                justify="left",
+                wraplength=420,
+            ).pack(anchor="w")
+            return
+
+        if result is None:
+            tk.Label(
+                self._model_prediction_area,
+                text="입력값을 저장하면 예측 결과가 여기에 표시됩니다.",
+                font=("맑은 고딕", 10),
+                fg=self.SUBTEXT,
+                bg="#FAFBFC",
+            ).pack(anchor="w")
+            return
+
+        color = STATUS_CRITICAL if result["is_failure"] else STATUS_GOOD
+        tk.Label(
+            self._model_prediction_area,
+            text=(
+                f"예측 결과: {result['label']}  "
+                f"(불량 확률 {result['failure_probability'] * 100:.1f}%)"
+            ),
+            font=("맑은 고딕", 12, "bold"),
+            fg=color,
+            bg="#FAFBFC",
+        ).pack(anchor="w")
 
     def _create_news_card(self, parent, number):
         """뉴스 제목 한 건을 표시할 카드 UI를 만든다."""
