@@ -5,6 +5,25 @@
 - 원본 데이터: [`src/ai4i2020.csv`](src/ai4i2020.csv) (10,000행 x 14열)
 - 결과물: EDA 노트북, 모델링 노트북 3종, 학습된 모델(`model/random_forest_enhanced.joblib`), Tkinter 데스크톱 UI(`src/UI/`)
 
+**전체 흐름 한눈에 보기** — 아래 각 장에서 자세히 다룹니다.
+
+```mermaid
+flowchart LR
+    csv[("ai4i2020.csv<br/>10,000행 x 14열")] --> eda["EDA<br/>EDA1 / EDA2.ipynb"]
+    eda --> exp1["Type 다중분류<br/>AUC 0.48~0.51<br/>(랜덤 수준, 폐기)"]
+    eda --> exp2["Torque 회귀<br/>R² 0.8+<br/>(신호 확인용)"]
+    eda --> exp3["Machine failure 이진분류<br/>확정 주제"]
+    exp3 --> m1["1차 Baseline<br/>model_1.ipynb"]
+    m1 --> m2["2차 피처+튜닝<br/>model_2.ipynb"]
+    m2 --> m3["3차 risk_zone 피처<br/>model_3.ipynb · F1 0.912"]
+    m3 --> joblib[("model/random_forest_enhanced.joblib")]
+    joblib --> ui["Tkinter UI<br/>src/UI/"]
+
+    style exp3 fill:#d4edda,stroke:#28a745
+    style m3 fill:#d4edda,stroke:#28a745
+    style joblib fill:#fff3cd,stroke:#d39e00
+```
+
 ## 목차
 
 1. [데이터 개요](#데이터-개요)
@@ -144,6 +163,18 @@
 이 주제 하나로만 노트북을 3번(`model_1.ipynb` → `model_2.ipynb` → `model_3.ipynb`) 다시 짰습니다. 세 번
 다 같은 데이터·같은 타겟이지만, **접근 방식이 매번 바뀐 이유가 바로 앞 시도의 한계**이기 때문에 순서대로
 보면 왜 최종적으로 지금 방식(3차)에 도달했는지 납득이 갑니다.
+
+```mermaid
+flowchart LR
+    A["1차 Baseline<br/>원본 변수만<br/>정밀도 0.35 · 재현율 0.85 · F1 0.50"]
+    B["2차 피처엔지니어링 + 튜닝<br/>RandomizedSearchCV(recall 최적화)<br/>정밀도 0.34 · 재현율 0.91 · F1 0.50"]
+    C["3차 risk_zone 피처<br/>도메인 규칙 직접 주입<br/>정밀도 1.000 · 재현율 0.838 · F1 0.912"]
+
+    A -- "재현율이 너무 낮음" --> B
+    B -- "정밀도-재현율 트레이드오프가<br/>안 풀림 → 접근을 바꿈" --> C
+
+    style C fill:#d4edda,stroke:#28a745
+```
 
 #### 1차 — Baseline (`src/model_1.ipynb`)
 
@@ -287,6 +318,27 @@ joblib.dump(
 ### 4-2. 아키텍처 — `src/UI/`
 
 `main.py`는 위젯 조립만 담당하고, "무엇을 그릴지"/"무엇을 수집할지"/"무엇을 예측할지"는 각각 별도 모듈에 위임합니다. 세 모듈 모두 Tkinter를 몰라도 되게(=import조차 하지 않게) 설계해서, 나중에 다른 UI(웹 등)로 갈아끼워도 재사용할 수 있습니다.
+
+```mermaid
+flowchart TD
+    main["main.py<br/>Tkinter 위젯 조립 · 좌/우 패널 라우팅"]
+    vis["visualizer.py<br/>DataFrame → matplotlib Figure"]
+    craw["crawler.py<br/>검색어 → 네이버 뉴스 목록"]
+    pred["model_predictor.py<br/>입력값 → 예측 / 지표"]
+    csv[("ai4i2020.csv")]
+    naver(["네이버 뉴스 검색"])
+    joblib[("model/random_forest_enhanced.joblib")]
+
+    main --> vis
+    main --> craw
+    main --> pred
+    vis --> csv
+    craw --> naver
+    pred --> joblib
+```
+
+세 모듈 다 Tkinter/UI 상태를 모르는 순수 함수형 인터페이스라, 화살표는 전부 `main.py`에서
+바깥쪽으로만 나갑니다(역방향 의존 없음) — 새 모듈을 추가할 때도 이 방향을 지키세요.
 
 | 모듈 | 역할 |
 | --- | --- |
