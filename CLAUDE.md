@@ -9,8 +9,8 @@
 별도로 크롤링할 계획은 없으며, 앞으로도 `ai4i2020.csv`가 유일한 데이터 소스입니다.
 
 **모든 `.py`/`.ipynb`/`.csv` 파일은 `src/` 아래에 있습니다** (`src/UI/main.py`, `src/UI/crawler.py`,
-`src/UI/visualizer.py`, `src/UI/model_predictor.py`, `src/EDA.ipynb`, `src/EDA2.ipynb`,
-`src/classifications.ipynb`, `src/regression.ipynb`, `src/model_3.ipynb`, `src/ai4i2020.csv`). 아래
+`src/UI/visualizer.py`, `src/UI/model_predictor.py`, `src/EDA1.ipynb`, `src/EDA2.ipynb`,
+`src/model_1.ipynb`, `src/model_2.ipynb`, `src/model_3.ipynb`, `src/ai4i2020.csv`). 아래
 본문에서 파일명만 적었으면 전부 `src/` 아래(단, Tkinter UI와 얽힌 4종은 `src/UI/` 아래)에 있다는
 뜻입니다. Tkinter UI 4종(`main.py`/`crawler.py`/`visualizer.py`/`model_predictor.py`)만 서로 묶여서
 `src/UI/`에 있고, 나머지 노트북/CSV는 그대로 `src/` 바로 아래에 있습니다 — `main.py`가
@@ -20,17 +20,35 @@
 `model_predictor.py`의 `MODEL_PATH`는 `src/UI/`에서 두 단계 위(저장소 루트) `model/`을 가리키도록
 `Path(__file__).resolve().parent.parent.parent`를 씁니다.
 `README.md`/`CLAUDE.md`/`docs/`/`images/`/`model/`/`미니 프로젝트 흐름도.png`는 저장소 루트에 그대로
-남아 있습니다 — `images/`/`model/`이 `src/` 밖에 있기 때문에 `EDA.ipynb`/`classifications.ipynb`/
-`model_3.ipynb`의 `savefig()`/`joblib.dump()` 호출은 `"../images/*.png"`/`"../model/*.joblib"`처럼
-한 단계 위로 올라가는 상대경로를 씁니다. 앞으로 `preprocessor.py` 등 새 모듈을 추가할 때도 `src/`
-안에 만드세요(단, Tkinter UI와 얽힌 모듈이면 `src/UI/` 안에).
+남아 있습니다 — `images/`/`model/`이 `src/` 밖에 있기 때문에 `EDA1.ipynb`/`model_3.ipynb` 등의
+`savefig()`/`joblib.dump()` 호출은 `"../images/*.png"`/`"../model/*.joblib"`처럼 한 단계 위로
+올라가는 상대경로를 씁니다. 앞으로 `preprocessor.py` 등 새 모듈을 추가할 때도 `src/` 안에
+만드세요(단, Tkinter UI와 얽힌 모듈이면 `src/UI/` 안에). 예외적으로 `scripts/run_notebook.py`만
+저장소 루트의 `scripts/` 아래에 있습니다 — 노트북 실행용 도구라 `src/` 안 코드와는 성격이 달라
+분리했습니다 (아래 "가상환경(`.venv/`)과 노트북 실행" 절 참고).
 
-1. **EDA 노트북** (`EDA.ipynb`, `EDA2.ipynb`) — `ai4i2020.csv` 분석. 완료되었으며 `README.md`에 정리되어 있음.
-2. **`classifications.ipynb`** — `Type`(품질 등급 L/M/H)을 맞히는 다중분류 모델 4종(Random Forest, XGBoost,
-   Logistic Regression, SVM)을 학습·비교하는 노트북. **구현 완료**, 아래 전용 절 참고. `미니 프로젝트
-   흐름도.png`가 정의한 `modeling.py`/`Modeler` 모듈(아래 "목표 파이프라인 모듈" 표)과는 별개입니다 —
-   그쪽은 여전히 미구현·보류 상태이며, 이 노트북은 `EDA.ipynb`/`EDA2.ipynb`처럼 분석용 산출물입니다.
-3. **`main.py`** (Tkinter UI) + **`visualizer.py`** (그래프) + **`crawler.py`** (크롤링)로 모듈이 나뉘어
+> **파일 이름 변경/삭제 이력** (착각하기 쉬운 부분): 원래 메인 EDA 노트북은 `EDA.ipynb`였지만 지금은
+> `src/EDA1.ipynb`로 이름이 바뀌었습니다. `Type`(품질 등급) 다중분류를 다루던 `classifications.ipynb`와
+> `Torque` 회귀를 다루던 `regression.ipynb`는 프로젝트 주제가 `Machine failure` 이진분류로 확정된 뒤
+> **저장소에서 삭제**됐습니다 — 두 실험의 결과(표/그래프)는 `README.md` 2장(모델링 — 세 가지 예측 문제
+> 비교)에 기록으로 남아 있고, 관련 이미지(`images/model_f1_comparison.png`, `images/model_roc_curves.png`,
+> `images/regression_scatter.png`)도 그대로 있습니다. `src/EDA2.html`(EDA2.ipynb export본)도 같은
+> 시점에 삭제됐습니다. 앞으로 이 파일들의 경로를 코드에서 참조하지 마세요 — 존재하지 않습니다.
+
+1. **EDA 노트북** (`EDA1.ipynb`, `EDA2.ipynb`) — `ai4i2020.csv` 분석. 완료되었으며 `README.md`에 정리되어 있음.
+2. **탐색 단계 모델링** — 확정 주제(`Machine failure` 이진분류)로 좁혀지기 전, `Type`(품질 등급) 다중분류
+   4종 모델 비교(`classifications.ipynb`)와 `Torque` 회귀 4종 모델 비교(`regression.ipynb`)도 진행했습니다.
+   두 노트북 모두 **결과까지 낸 뒤 저장소에서 삭제**됐고(위 "파일 이름 변경/삭제 이력" 참고), 결과는
+   `README.md` 2장에 정리돼 있습니다 — `Type`은 사실상 랜덤 수준(AUC 0.48~0.51)이었고 `Torque`는 잘
+   예측됨(R² 0.8+)을 확인한 것이 `Machine failure`로 주제를 확정하는 근거가 됐습니다. `미니 프로젝트
+   흐름도.png`가 정의한 `modeling.py`/`Modeler` 모듈(아래 "목표 파이프라인 모듈" 표)과는 별개입니다.
+3. **`src/model_1.ipynb`/`src/model_2.ipynb`** — `Machine failure` 이진분류의 초기 draft 노트북 2개
+   (markdown 설명 없이 코드만 있음). `model_1.ipynb`는 SMOTE + RandomForest/XGBoost/LightGBM 단순 비교,
+   `model_2.ipynb`는 피처 엔지니어링 + `RandomizedSearchCV`(recall 기준) 튜닝을 시도했습니다. 최종적으로
+   위험구간(zone) 피처 엔지니어링을 적용한 **`model_3.ipynb`가 이 실험들을 이어받아 완성한 버전**이자
+   실제 UI에 배포된 모델입니다 — 아래 `src/model_3.ipynb` 절 참고. `model_1`/`model_2`는 현재 UI와
+   연결되어 있지 않고, 과거 실험 기록으로만 남아 있습니다.
+4. **`main.py`** (Tkinter UI) + **`visualizer.py`** (그래프) + **`crawler.py`** (크롤링)로 모듈이 나뉘어
    있습니다. 오른쪽 패널은 네이버 뉴스 크롤러이지만, **더 이상 무관한 고정 검색어가 아니라 왼쪽 그래프
    카드가 알려주는 EDA 인사이트로 검색어가 바뀝니다** — 예: "세부 고장 모드별 발생 건수" 카드를 클릭하면
    `"CNC 방열 고장"`(실제 데이터에서 가장 흔한 고장 모드)으로 재검색됩니다. "크롤링이 우리 EDA 결과를
@@ -40,15 +58,15 @@
    12개로 렌더링합니다. **"모델 훈련 결과 보기"와 "모델 입력하기" → 예측 연동도 구현 완료**됐습니다 —
    `src/model_3.ipynb`가 학습한 Random Forest(Enhanced 피처셋) 모델을 `model/random_forest_enhanced.joblib`
    로 저장해 두고, `src/UI/model_predictor.py`가 이를 불러와 두 화면에 각각 연결합니다 (아래 절 참고).
-4. **`미니 프로젝트 흐름도.png`** — 원래 구상했던 더 큰 파이프라인
+5. **`미니 프로젝트 흐름도.png`** — 원래 구상했던 더 큰 파이프라인
    ("현대오토에버 제조데이터 미니 프로젝트 (분류/회귀)")의 흐름도 스펙: 크롤링 → 전처리 → 시각화(EDA) →
    리터러시(Q→A) → 모델링(분류/회귀) → 평가 → 저장 → 보고서, `crawler.py`/`preprocessor.py`/`visualizer.py`/
    `literacy.py`/`modeling.py`/`evaluation.py`/`report.py` 모듈 포함. **프로젝트 결정에 따라 전처리/평가/
-   저장/보고서 단계(및 크롤링 단계)는 나중으로 미룹니다** — `classifications.ipynb`로 모델링(분류)
-   비교는 이미 진행했지만, 이는 흐름도가 정의한 `modeling.py`/`Modeler` 모듈 자체를 구현한 것은 아닙니다.
-   아래 모듈/함수 이름은 나중에 `modeling.py` 등을 재개할 때 참고용으로 남겨둔 것이며, 미리 앞서서 만들
-   필요는 없습니다.
-5. **`docs/troubleshooting.md`** — 이 프로젝트의 진행형 트러블슈팅 기록입니다. **작업 중 실제 에러/이슈를
+   저장/보고서 단계(및 크롤링 단계)는 나중으로 미룹니다** — `model_1.ipynb`~`model_3.ipynb`로 모델링
+   (이진분류) 비교는 이미 진행했지만, 이는 흐름도가 정의한 `modeling.py`/`Modeler` 모듈 자체를 구현한
+   것은 아닙니다. 아래 모듈/함수 이름은 나중에 `modeling.py` 등을 재개할 때 참고용으로 남겨둔 것이며,
+   미리 앞서서 만들 필요는 없습니다.
+6. **`docs/troubleshooting.md`** — 이 프로젝트의 진행형 트러블슈팅 기록입니다. **작업 중 실제 에러/이슈를
    겪고 해결했다면 행을 추가하세요**: 발생 단계 / 에러·이슈 내용 / 원인 / 해결 방법 / 예방 대책. 흐름도
    이미지의 "에러/이슈 정리" 표 형식을 그대로 따릅니다.
 
@@ -57,38 +75,76 @@
 빌드 시스템, 린터, 테스트 스위트는 별도로 구성되어 있지 않습니다. 순수 스크립트/노트북 기반 프로젝트입니다.
 
 ```bash
-# 환경 설정 (저장소에 venv/가 이미 있음; 필요 시 재생성)
-# 주의: `pip`가 PATH상 Anaconda 것을 먼저 찾아 venv가 아닌 곳에 설치될 수 있으니
-# (docs/troubleshooting.md 참고) 반드시 venv의 python -m pip로 설치할 것
-./venv/Scripts/python -m pip install pandas numpy matplotlib seaborn jupyter scikit-learn xgboost lightgbm
+# 환경 설정 (저장소에 .venv/가 이미 있음; 필요 시 재생성)
+# 주의: `pip`가 PATH상 Anaconda 것을 먼저 찾아 .venv가 아닌 곳에 설치될 수 있으니
+# (docs/troubleshooting.md 참고) 반드시 .venv의 python -m pip로 설치할 것
+./.venv/Scripts/python -m pip install -r requirements.txt
+# requirements.txt가 낡았거나 없다면 .venv 기준으로 새로 생성: ./.venv/Scripts/python -m pip freeze > requirements.txt
+# (반드시 .venv의 pip로 생성할 것 — Anaconda 등 다른 인터프리터에서 freeze하면 이 프로젝트와 무관한
+# 패키지 수백 개가 섞여 들어간다. requirements.txt에는 pandas/numpy/matplotlib/seaborn/jupyter/
+# scikit-learn/xgboost/lightgbm/imbalanced-learn/joblib/nbclient/ipykernel이 포함되어 있어야 한다.)
 
-# 메인 EDA 노트북을 처음부터 끝까지 재실행 (저장소 루트의 images/*.png를 재생성함;
-# nbconvert는 기본적으로 노트북이 있는 폴더(src/)를 작업 디렉터리로 실행한다)
-jupyter nbconvert --to notebook --execute --inplace src/EDA.ipynb
+# .venv 전용 Jupyter 커널 등록 (최초 1회만; 아래 노트북 재실행에 필요)
+./.venv/Scripts/python -m ipykernel install --user --name cnc-venv --display-name "Python (.venv - CNC project)"
 
-# Type(L/M/H) 분류 모델 비교 노트북 재실행 (images/model_*.png를 재생성함)
-jupyter nbconvert --to notebook --execute --inplace src/classifications.ipynb
+# 메인 EDA 노트북을 처음부터 끝까지 재실행 (저장소 루트의 images/eda_*.png를 재생성함)
+# 주의: `jupyter nbconvert --execute`를 직접 쓰지 말 것 — 이 PC의 conda 자동 초기화 때문에
+# 엉뚱한 인터프리터(Anaconda 베이스 등)로 조용히 새는 문제가 있다(docs/troubleshooting.md 참고).
+# scripts/run_notebook.py가 nbclient로 커널을 못박아 이 문제를 우회한다. 이 스크립트는 nbconvert처럼
+# 노트북이 있는 폴더(src/)를 작업 디렉터리로 실행하므로 상대경로(../images/*.png 등)는 그대로 동작한다.
+./.venv/Scripts/python scripts/run_notebook.py src/EDA1.ipynb
 
 # Machine failure(정상/불량) 이진분류 노트북 재실행 (images/modeling2_*.png와
 # model/random_forest_enhanced.joblib을 재생성함 — UI가 이 joblib 파일을 그대로 불러 씀)
-jupyter nbconvert --to notebook --execute --inplace src/model_3.ipynb
+./.venv/Scripts/python scripts/run_notebook.py src/model_3.ipynb
 
 # Tkinter 앱 실행 (저장소 루트에서 실행. 네이버 뉴스 크롤링을 위해 인터넷 연결 필요.
 # "모델 훈련 결과 보기"/"모델 입력하기" 탭을 쓰려면 위 model_3.ipynb를 먼저 한 번 실행해
 # model/random_forest_enhanced.joblib이 있어야 함)
-python src/UI/main.py
+./.venv/Scripts/python src/UI/main.py
 ```
+
+### 가상환경(`.venv/`)과 노트북 실행 — 반드시 읽을 것
+이 저장소는 원래 `venv/`를 썼지만 **`.venv/`로 교체**했습니다(`.gitignore`에도 `.venv/`가 등록돼
+있음). `venv/`가 남아 있다면 그건 옛 흔적이니 참조하지 마세요.
+
+이 PC(및 비슷하게 `conda init`이 셸 프로필에 등록된 PC)에서는 **새 PowerShell을 열 때마다
+`VIRTUAL_ENV`/`CONDA_PREFIX`가 자동으로 주입**되는데, 이게 Jupyter의 커널 탐색 순서에 끼어들어서
+`jupyter nbconvert --execute`가 **의도한 `.venv`가 아니라 엉뚱한 인터프리터(옛 `venv/`나 Anaconda
+베이스)로 조용히 새는 문제**가 있습니다(에러 없이 "성공"하기 때문에 알아채기 어려움). 게다가
+`--ExecutePreprocessor.kernel_name=...` CLI 플래그로 강제해도 이 환경에서는 무시됩니다(원인 미상,
+PowerShell/Bash 양쪽에서 재현 확인). 자세한 원인 분석은 `docs/troubleshooting.md`의 "환경 설정
+(`venv/`→`.venv/` 재구축, 노트북 실행)" 행 참고.
+
+**그래서 노트북을 재실행할 때는 `jupyter nbconvert --execute`를 직접 쓰지 말고, 위 명령어 예시처럼
+`scripts/run_notebook.py`를 쓰세요** — `nbclient`를 직접 호출해서 커널 이름(`cnc-venv`)을 코드로
+못박기 때문에 PATH/VIRTUAL_ENV/CONDA_PREFIX가 무엇이든 항상 `.venv`가 실행됩니다. `cnc-venv`
+커널이 아직 없다면 위 명령어의 `ipykernel install` 줄을 먼저 한 번 실행하세요. 실제로 어떤
+인터프리터가 실행됐는지 확인하고 싶으면 출력의 경고문에 찍히는 파일 경로가 `.venv\Lib\site-packages\...`
+인지 보면 됩니다.
+
+`requirements.txt`를 다시 만들 때도 마찬가지로 `pip freeze`를 bare로 쓰지 말고 반드시
+`./.venv/Scripts/python -m pip freeze`처럼 인터프리터를 직접 지정하세요 — bare `pip`/`python`은
+PATH 맨 앞이 가리키는 곳(Anaconda 등)으로 샐 수 있습니다.
 
 ## 아키텍처
 
-### EDA 노트북 (`src/EDA.ipynb`, `src/EDA2.ipynb`, `src/ai4i2020.csv`)
-- `src/EDA.ipynb`는 `README.md`가 참조하는 메인 분석 노트북으로, 저장소 루트의 `images/` 아래에 모든
-  차트를 생성합니다 (히스토그램, 상관관계 히트맵, 고장 분포, 세부 고장 모드, 고장 여부별 박스플롯,
-  Type별 고장률). 노트북이 `src/`에 있고 `images/`는 루트에 있으므로 `savefig()` 호출은
-  `"../images/eda_*.png"` 형태의 상대경로를 씁니다 — `images/` 폴더를 옮기거나 노트북을 다른 곳으로
-  옮기면 이 상대경로도 같이 고쳐야 합니다.
-- `src/EDA2.ipynb`는 같은 데이터셋으로 컬럼 선택/그룹핑/정렬/시각화 연습에 초점을 맞춘 2차 노트북이며
-  (노트북 맨 앞 markdown 셀 참고), `src/EDA2.html`로 export되어 있습니다.
+### EDA 노트북 (`src/EDA1.ipynb`, `src/EDA2.ipynb`, `src/ai4i2020.csv`)
+- `src/EDA1.ipynb`(원래 이름은 `EDA.ipynb`였다가 리네임됨)는 `README.md`가 참조하는 메인 분석
+  노트북으로, 저장소 루트의 `images/` 아래에 모든 차트를 생성합니다 (히스토그램, Type 분포, 고장 분포,
+  세부 고장 모드, 상관관계 히트맵, 고장 여부별 박스플롯, Type별 고장률). 노트북이 `src/`에 있고
+  `images/`는 루트에 있으므로 `savefig()` 호출은 `"../images/eda_*.png"` 형태의 상대경로를 씁니다 —
+  `images/` 폴더를 옮기거나 노트북을 다른 곳으로 옮기면 이 상대경로도 같이 고쳐야 합니다.
+  - **주의(실제로 겪은 버그)**: 첫 셀이 컬럼 *이름*은 strip하면서 `Type` *값*은 strip하지 않아서
+    (원본 값이 `' L   '`처럼 앞뒤 공백 포함), `Type` 기준 `countplot`/`groupby` 차트 2개
+    (`eda_type_dist.png`, `eda_failrate_by_type.png`)가 빈 그래프로 저장돼 있었다. `df["Type"] =
+    df["Type"].str.strip()`를 첫 셀에 추가해 고쳤다. 추가로 `eda_failrate_by_type.png`는 pandas
+    `Series.plot(kind="bar")`의 기본 90도 x축 라벨 회전이 Malgun Gothic 폰트와 결합하면 L/M/H가 깨진
+    글자(ㄴ/∑/ㅍ처럼)로 렌더링되는 버그가 있어 `rot=0`으로 회전을 꺼서 우회했다. 앞으로 `Type`을 x축
+    라벨로 쓰는 새 차트를 추가할 때 이 두 가지(strip 여부, rot=0)를 같이 확인할 것.
+- `src/EDA2.ipynb`는 같은 데이터셋으로 컬럼 선택/그룹핑/정렬/시각화 연습에 초점을 맞춘 2차 노트북입니다
+  (노트북 맨 앞 markdown 셀 참고). 예전에는 `src/EDA2.html`로 export되어 있었지만 그 파일은 이후
+  정리 과정에서 삭제됐습니다 — 다시 필요하면 `jupyter nbconvert --to html`로 재생성하세요.
 - `src/ai4i2020.csv`(10,000행 × 14열)는 결측치·중복행이 없지만, `Type`과 `Product ID`에 앞뒤 공백이 섞여
   있어 groupby/join 전에 반드시 strip해야 합니다 (`EDA2.ipynb` 초반의 `.str.strip()` 호출 참고).
 - 이후 모델링 작업에 참고해야 할 분석 결과(`README.md` 기준):
@@ -101,7 +157,11 @@ python src/UI/main.py
   - 고장 예측에 가장 유효한 변수: `Torque` > `Tool wear` > `Air temperature`; 제품 `Type` 등급이 높을수록
     고장률이 낮아짐 (L 3.92% > M 2.77% > H 2.09%).
 
-### `src/classifications.ipynb` — `Type`(품질 등급) 분류 모델 4종 비교
+### (삭제됨) `classifications.ipynb` — `Type`(품질 등급) 분류 모델 4종 비교
+> **이 노트북 파일은 더 이상 저장소에 없습니다** (위 "파일 이름 변경/삭제 이력" 참고). 아래 내용은
+> 실행 당시의 접근 방식/결론을 참고용으로 남겨둔 것이며, 결과 요약은 `README.md` 2-1절에도 있습니다.
+> 이 실험을 다시 하고 싶으면 이 절의 설명대로 새로 노트북을 만들면 됩니다.
+
 `ai4i2020.csv`의 센서값(`Air/Process temperature`, `Rotational speed`, `Torque`, `Tool wear`)과
 `Machine failure`/세부 고장 모드(`TWF`/`HDF`/`PWF`/`OSF`/`RNF`)로 `Type`(L/M/H)을 예측하는 다중분류
 문제를 다룹니다. `UDI`/`Product ID`는 식별자라 특성에서 제외했습니다.
@@ -138,7 +198,10 @@ python src/UI/main.py
   고치거나 새 모델링 코드를 짤 때 "특성을 더 정교하게 손보면 이 결과가 크게 개선될 것"이라고 가정하지
   말고, 먼저 이 결론(약한 신호)을 참고하세요.
 
-### `src/regression.ipynb` — Torque[Nm] 회귀 모델 4종 비교
+### (삭제됨) `regression.ipynb` — Torque[Nm] 회귀 모델 4종 비교
+> **이 노트북 파일도 더 이상 저장소에 없습니다** (위 "파일 이름 변경/삭제 이력" 참고). 결과 요약은
+> `README.md` 2-2절 참고.
+
 `classifications.ipynb`(Type 분류)와 짝을 이루는 회귀 버전. `Air/Process temperature`, `Rotational
 speed`, `Tool wear`, `Machine failure`/고장 모드 플래그로 `Torque [Nm]`을 예측한다. **주의**:
 `Rotational speed`는 특성으로 써도 되지만(EDA에서 확인한 -0.88 상관관계), `Power`나
@@ -157,9 +220,30 @@ speed`, `Tool wear`, `Machine failure`/고장 모드 플래그로 `Torque [Nm]`�
   보면 "모델을 더 좋은 걸 썼는가"보다 "타겟이 특성들과 실제로 관계가 있는가"가 예측 성능을 훨씬 크게
   좌우한다는 점을 대조적으로 확인할 수 있다.
 
+### `src/model_1.ipynb` / `src/model_2.ipynb` — `Machine failure` 이진분류 draft 2종
+`model_3.ipynb`로 완성되기 전의 초기 draft 노트북입니다. **markdown 설명 셀이 전혀 없고 코드만 있어서**,
+아래 요약은 코드를 직접 읽어서 정리한 것입니다. 둘 다 현재 UI(`model_predictor.py`)와 연결돼 있지 않고,
+과거 실험 기록으로만 남아 있습니다 — 새로 손볼 필요가 생기면 `model_3.ipynb`의 위험구간(zone) 피처를
+먼저 적용해보는 쪽을 권장합니다.
+
+- **`model_1.ipynb`**: `Product ID` 제거 + `Type` 원-핫 인코딩 → `MinMaxScaler` + `SMOTE`(RandomForest만
+  SMOTE 적용 데이터로 학습, XGBoost/LightGBM은 원본 데이터로 학습) → RandomForest(`n_estimators=500,
+  max_depth=15, class_weight="balanced"`)/XGBoost/LightGBM 단순 비교. 정확도 기준 RandomForest 0.942,
+  XGBoost 0.984, LightGBM 0.9845.
+- **`model_2.ipynb`**: `model_1.ipynb`과 같은 전처리에 파생변수(`Power` 등)를 추가하고,
+  `RandomForestClassifier`에 `RandomizedSearchCV`(`scoring="recall"`, `n_iter=30`, `cv=5`, `n_jobs=-1`,
+  커스텀 `class_weight` 딕셔너리 후보 포함)로 하이퍼파라미터 탐색을 수행. 재현율(recall) 기준 최적화라
+  best recall이 약 0.995까지 나왔음(재현율에 치우친 튜닝이라 정밀도와의 트레이드오프는 별도 확인 필요).
+  - **주의(실제로 겪은 버그, Windows 한정)**: `n_jobs=-1`처럼 `n_jobs`를 1이 아닌 값으로 주면, Windows
+    사용자 폴더 이름에 한글(비-ASCII 문자)이 섞여 있을 때 joblib이 임시 폴더 경로를 ASCII로 인코딩하려다
+    `UnicodeEncodeError`로 죽는다. 이 노트북 첫 셀에 `os.environ.setdefault("JOBLIB_TEMP_FOLDER", ...)`로
+    ASCII 전용 시스템 임시 폴더를 지정해 회피해뒀다 — `n_jobs`를 쓰는 새 코드를 추가할 때 이 패턴을
+    재사용할 것 (`docs/troubleshooting.md` 참고).
+
 ### `src/model_3.ipynb` — `Machine failure`(정상/불량) 이진분류, UI에 실제로 배포된 모델
-`classifications.ipynb`(Type 다중분류)/`regression.ipynb`(Torque 회귀)와 짝을 이루는 세 번째 모델링
-노트북으로, 이 미니 프로젝트의 확정 주제인 정상/불량 이진분류를 직접 다룹니다. **주의**: 노트북 파일명은
+확정 주제인 정상/불량 이진분류를 다루는 세 번째(최종) 모델링 노트북입니다 — `model_1.ipynb`/
+`model_2.ipynb`의 draft를 이어받아 위험구간(zone) 피처 엔지니어링으로 완성한 버전이자, 실제로 UI에
+배포된 모델(`model/random_forest_enhanced.joblib`)을 만들어내는 노트북입니다. **주의**: 노트북 파일명은
 `model_3.ipynb`이지만 내부 markdown/`savefig()`/`joblib.dump()` 경로는 과거 이름인 `modeling2`를 그대로
 쓰고 있습니다(`../images/modeling2_*.png`, `docs/modeling2_binary_eda.md`, 노트북 안내 문구의
 `src/modeling2.ipynb`) — 리네임 후 내부 문구를 안 고친 상태이니 새로 셀을 추가할 때 파일명이 아니라
