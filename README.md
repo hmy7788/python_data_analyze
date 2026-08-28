@@ -26,13 +26,67 @@ flowchart LR
 
 ## 목차
 
-1. [데이터 개요](#데이터-개요)
-2. [탐색적 데이터 분석 (EDA)](#1-탐색적-데이터-분석-eda)
-3. [모델링 — 세 가지 예측 문제 비교](#2-모델링--세-가지-예측-문제-비교)
-4. [모델 저장 & UI 연동](#3-모델-저장--ui-연동)
-5. [UI 설계 — Tkinter 데스크톱 앱](#4-ui-설계--tkinter-데스크톱-앱)
-6. [실행 방법](#실행-방법)
-7. [트러블슈팅 & 추가 문서](#트러블슈팅--추가-문서)
+1. [디렉토리 구조](#디렉토리-구조)
+2. [데이터 개요](#데이터-개요)
+3. [탐색적 데이터 분석 (EDA)](#1-탐색적-데이터-분석-eda)
+4. [모델링 — 세 가지 예측 문제 비교](#2-모델링--세-가지-예측-문제-비교)
+5. [모델 저장 & UI 연동](#3-모델-저장--ui-연동)
+6. [UI 설계 — Tkinter 데스크톱 앱](#4-ui-설계--tkinter-데스크톱-앱)
+7. [실행 방법](#실행-방법)
+8. [트러블슈팅 & 추가 문서](#트러블슈팅--추가-문서)
+
+## 디렉토리 구조
+
+```text
+python_data_analyze/
+├── README.md                    # 프로젝트 개요 · EDA · 모델링 · UI 설명 (현재 파일)
+├── CLAUDE.md                    # Claude Code용 저장소 가이드 (경로/컨벤션/트러블슈팅 요약)
+├── requirements.txt              # .venv 기준 직접 의존성 목록
+├── 발표자료_CNC설비_정상불량판별.pptx  # 발표자료
+│
+├── src/                          # 모든 .py / .ipynb / .csv
+│   ├── ai4i2020.csv              # 원본 데이터 (10,000행 x 14열, 유일한 데이터 소스)
+│   ├── EDA1.ipynb                # 1차 EDA — 기본 통계/분포/상관관계/세부 고장모드
+│   ├── EDA2.ipynb                # 2차 EDA — 컬럼 선택/그룹핑/정렬/시각화 연습
+│   ├── EDA3.ipynb                # 3차 EDA — 이상치/통계검정/교차분석/위험구간 심화 분석
+│   ├── model_1.ipynb             # 1차 모델링 — Baseline (원본 변수 + SMOTE)
+│   ├── model2_RandomForest.ipynb # 2차 모델링 — 피처 엔지니어링 + RandomizedSearchCV 튜닝
+│   ├── model2_XGBoost.ipynb      #   (RandomForest/XGBoost/LightGBM 3종으로 분리)
+│   ├── model2_LightGBM.ipynb
+│   ├── model_3.ipynb             # 3차 모델링 — 위험구간(risk_zone) 피처, 최종 배포 모델 생성
+│   └── UI/                       # Tkinter 데스크톱 앱 (서로 얽혀 있어 별도 폴더로 묶음)
+│       ├── main.py               #   위젯 조립 · 좌/우 패널 라우팅
+│       ├── visualizer.py         #   ai4i2020.csv → matplotlib Figure
+│       ├── crawler.py            #   검색어 → 네이버 뉴스 크롤링
+│       └── model_predictor.py    #   저장된 모델 로드 · 예측 · 지표 조회
+│
+├── model/
+│   └── random_forest_enhanced.joblib  # model_3.ipynb가 저장한 최종 배포 모델(+피처 순서+지표)
+│
+├── images/                       # EDA/모델링 그래프, UI 스크린샷, 기획 목업 (30여 개 png)
+│   ├── eda_*.png                 #   EDA1 차트 8종
+│   ├── eda3_*.png                #   EDA3 심화 차트 5종
+│   ├── modeling2_*.png           #   model_3.ipynb(3차 모델링) 결과 차트 6종
+│   ├── model_*.png / regression_scatter.png  # 삭제된 classifications/regression 노트북 결과
+│   └── UI1.png / UI2.png / *기안방안*.png / *적용방안* 등  # UI 스크린샷·기획 목업
+│
+├── docs/
+│   ├── troubleshooting.md        # 진행형 트러블슈팅 기록 (발생 단계/원인/해결/예방)
+│   ├── issue1.md / issue2.md     # 개별 이슈 리포트 (레이스 컨디션, XGBoost 컬럼명 에러)
+│   ├── modeling2_binary_eda.md   # model_3.ipynb(3차 모델링) 상세 과정 문서
+│   ├── 모델링_평가지표.md          # 모델 평가지표 정리
+│   ├── 1차.md / 2차.md / 3차.md   # 단계별 진행 보고서
+│   ├── image/2차/                # 2차 보고서 첨부 이미지
+│   └── presentation.pptx
+│
+└── scripts/
+    └── run_notebook.py           # .venv 커널을 코드로 못박아 노트북을 실행하는 헬퍼
+                                   # (jupyter nbconvert --execute 대신 이걸 쓸 것, 아래 실행 방법 참고)
+```
+
+> `model_1.ipynb` → `model2_RandomForest.ipynb`/`model2_XGBoost.ipynb`/`model2_LightGBM.ipynb` →
+> `model_3.ipynb`가 2장에서 다루는 1차→2차→3차 모델링 흐름입니다. 2차가 노트북 1개(`model_2.ipynb`)가
+> 아니라 모델별로 3개 노트북으로 나뉘어 있는 점에 주의하세요.
 
 ## 데이터 개요
 
@@ -115,47 +169,7 @@ flowchart LR
 
 ## 2. 모델링 — 세 가지 예측 문제 비교
 
-같은 데이터셋으로 세 가지 타겟(Type 다중분류 / Torque 회귀 / Machine failure 이진분류)을 각각 모델링해보고 비교한 결과, **물리적으로 실제 관계가 있는 타겟은 잘 예측되고, 관계가 약한 타겟은 아무리 모델을 바꿔도 잘 예측되지 않는다**는 일관된 패턴을 확인했습니다. 이 비교가 최종적으로 `Machine failure` 이진분류(3번 항목)를 확정 주제로 잡은 근거입니다.
-
-### 2-1. Type(품질 등급) 다중분류 — 시도했으나 신호가 약함
-
-- 목표: 센서값(`Air/Process temperature`, `Rotational speed`, `Torque`, `Tool wear`)과 세부 고장 모드로 `Type`(L/M/H) 예측
-- 모델 4종: Random Forest, XGBoost, Logistic Regression, SVM — `class_weight="balanced"` 적용, 파생변수 4개(`Temp_diff`, `Power`, `Torque_x_ToolWear`, `Failure_mode_count`) 포함
-
-| 모델 | 정확도 | 정밀도 | 재현율 | F1-score | AUC |
-| --- | --- | --- | --- | --- | --- |
-| XGBoost | 0.494 | 0.327 | 0.332 | **0.328** | 0.503 |
-| Random Forest | 0.492 | 0.326 | 0.330 | 0.325 | **0.509** |
-| Logistic Regression | 0.239 | 0.329 | 0.330 | 0.233 | 0.497 |
-| SVM | 0.223 | 0.304 | 0.297 | 0.218 | 0.478 |
-
-![모델별 F1-score 비교](images/model_f1_comparison.png)
-![모델별 ROC Curve](images/model_roc_curves.png)
-
-- **AUC가 4개 모델 전부 0.48~0.51로 사실상 랜덤 수준**입니다. 파생변수를 추가해도 거의 개선되지 않았습니다.
-- 해석: `Type`은 가동 중 센서 측정값과 직접적인 인과관계가 없는, 제품 생산 시점에 이미 정해진 식별자성 라벨에 가깝습니다.
-- (참고) 이 실험은 `classifications.ipynb`로 진행했으며, 프로젝트 주제가 `Machine failure` 이진분류로 확정된 뒤 노트북 파일 자체는 정리했습니다. 위 표/그래프는 결과 기록으로 남겨둔 것입니다.
-
-### 2-2. Torque[Nm] 회귀 — 강한 신호 확인
-
-- 목표: `Air/Process temperature`, `Rotational speed`, `Tool wear`, `Machine failure`/고장 모드 플래그로 `Torque [Nm]` 예측
-- **주의**: `Power`나 `Torque × Tool wear`처럼 `Torque`를 직접 곱해 만드는 파생변수는 타겟 정보를 그대로 포함하므로(데이터 누수) 이 실험에서는 사용하지 않았습니다.
-- 모델 4종: Random Forest, XGBoost, SVR(rbf), Linear Regression
-
-| 모델 | R² | MAE | RMSE | MAPE(%) |
-| --- | --- | --- | --- | --- |
-| Random Forest | **0.847** | 2.99 | 3.89 | 7.41 |
-| XGBoost | 0.822 | 3.23 | 4.19 | 8.11 |
-| SVR | 0.816 | 3.08 | 4.25 | 8.02 |
-| Linear Regression | 0.804 | 3.42 | 4.40 | 9.37 |
-
-![모델별 실제값 vs 예측값](images/regression_scatter.png)
-
-- **4개 모델 전부 R² 0.8 이상**으로 뚜렷하게 예측됩니다 — 2-1의 `Type`(AUC 0.48~0.51, 랜덤 수준)과 정반대되는 결과입니다.
-- 해석: `Torque`는 `Rotational speed`와 물리적으로 강하게 얽혀 있는(EDA 6번, -0.88) 변수라서 잘 예측되고, `Type`은 그런 물리적 관계가 없어서 잘 예측되지 않습니다 — "모델을 더 좋은 걸 썼는가"보다 "타겟이 특성들과 실제로 관계가 있는가"가 예측 성능을 훨씬 크게 좌우한다는 걸 보여줍니다.
-- (참고) 이 실험도 `regression.ipynb`로 진행했으며, 마찬가지로 결과만 기록으로 남기고 노트북 파일은 정리했습니다.
-
-### 2-3. Machine failure(정상/불량) 이진분류 — 최종 채택 모델
+### 2-1. Machine failure(정상/불량) 이진분류 — 최종 채택 모델
 
 - 대상: `Machine failure`(0=정상, 1=불량) — 이진분류, **이 프로젝트의 확정 주제**
 - 목표 설정 근거: EDA에서 `Torque`/`Tool wear`와 상관관계가 확인된 타겟 → 설비진단 문제로 직결, 2-2의 회귀 실험에서도 `Torque` 자체가 물리적으로 예측 가능한 신호임을 재확인
