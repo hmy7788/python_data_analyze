@@ -436,7 +436,7 @@ flowchart TD
 
 ## UI 시연 영상
 
-<video src="CNC_불량판단_시연영상.mp4" controls muted style="max-width: 100%;"></video>
+<video src="./CNC_불량판단_시연영상.mp4" controls muted style="max-width: 100%;"></video>
 
 Tkinter UI로 CNC 설비 정상/불량을 판별하는 과정을 담은 시연 영상입니다(재생이 안 보이면
 [영상 파일 바로가기](CNC_불량판단_시연영상.mp4)).
