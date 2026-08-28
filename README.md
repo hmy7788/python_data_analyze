@@ -435,6 +435,6 @@ flowchart TD
 - [`docs/1차.md`](docs/1차.md) / [`docs/2차.md`](docs/2차.md) / [`docs/3차.md`](docs/3차.md) — 단계별 진행 보고서
 
 ## UI 시연 영상
-
+https://github.com/user-attachments/assets/6f687300-2537-484d-a0c6-6db072b65e84
 
 Tkinter UI로 CNC 설비 정상/불량을 판별하는 과정을 담은 시연 영상입니다.
