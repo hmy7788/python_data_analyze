@@ -436,6 +436,5 @@ flowchart TD
 
 ## UI 시연 영상
 
-https://github.com/user-attachments/assets/1edd70cf-b7cf-4a2f-8f64-ff33c5351d39
 
 Tkinter UI로 CNC 설비 정상/불량을 판별하는 과정을 담은 시연 영상입니다.
