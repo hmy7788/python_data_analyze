@@ -34,6 +34,7 @@ flowchart LR
 6. [UI 설계 — Tkinter 데스크톱 앱](#4-ui-설계--tkinter-데스크톱-앱)
 7. [실행 방법](#실행-방법)
 8. [트러블슈팅 & 추가 문서](#트러블슈팅--추가-문서)
+9. [UI 시연 영상](#ui-시연-영상)
 
 ## 디렉토리 구조
 
@@ -432,3 +433,10 @@ flowchart TD
 - [`docs/issue2.md`](docs/issue2.md) — XGBoost가 컬럼명의 대괄호(`[`, `]`)를 거부하던 이슈
 - [`docs/modeling2_binary_eda.md`](docs/modeling2_binary_eda.md) — `Machine failure` 이진분류 상세 과정
 - [`docs/1차.md`](docs/1차.md) / [`docs/2차.md`](docs/2차.md) / [`docs/3차.md`](docs/3차.md) — 단계별 진행 보고서
+
+## UI 시연 영상
+
+<video src="CNC_불량판단_시연영상.mp4" controls muted style="max-width: 100%;"></video>
+
+Tkinter UI로 CNC 설비 정상/불량을 판별하는 과정을 담은 시연 영상입니다(재생이 안 보이면
+[영상 파일 바로가기](CNC_불량판단_시연영상.mp4)).
