@@ -9,7 +9,7 @@
 별도로 크롤링할 계획은 없으며, 앞으로도 `ai4i2020.csv`가 유일한 데이터 소스입니다.
 
 **모든 `.py`/`.ipynb`/`.csv` 파일은 `src/` 아래에 있습니다** (`src/UI/main.py`, `src/UI/crawler.py`,
-`src/UI/visualizer.py`, `src/UI/model_predictor.py`, `src/EDA1.ipynb`, `src/EDA2.ipynb`,
+`src/UI/visualizer.py`, `src/UI/model_predictor.py`, `src/EDA1.ipynb`, `src/EDA2.ipynb`, `src/EDA3.ipynb`,
 `src/model_1.ipynb`, `src/model_2.ipynb`, `src/model_3.ipynb`, `src/ai4i2020.csv`). 아래
 본문에서 파일명만 적었으면 전부 `src/` 아래(단, Tkinter UI와 얽힌 4종은 `src/UI/` 아래)에 있다는
 뜻입니다. Tkinter UI 4종(`main.py`/`crawler.py`/`visualizer.py`/`model_predictor.py`)만 서로 묶여서
@@ -35,7 +35,14 @@
 > `images/regression_scatter.png`)도 그대로 있습니다. `src/EDA2.html`(EDA2.ipynb export본)도 같은
 > 시점에 삭제됐습니다. 앞으로 이 파일들의 경로를 코드에서 참조하지 마세요 — 존재하지 않습니다.
 
-1. **EDA 노트북** (`EDA1.ipynb`, `EDA2.ipynb`) — `ai4i2020.csv` 분석. 완료되었으며 `README.md`에 정리되어 있음.
+1. **EDA 노트북** (`EDA1.ipynb`, `EDA2.ipynb`, `EDA3.ipynb`) — `ai4i2020.csv` 분석. `EDA1`은 기본 통계/분포/
+   상관관계/세부 고장모드, `EDA2`는 컬럼 선택/그룹핑/정렬/시각화 연습, `EDA3`은 이상치(IQR)/왜도·첨도/
+   정상-불량 그룹 간 통계적 유의성 검정(Mann-Whitney U)/Type×세부고장모드 교차분석/파생변수
+   (`temp_diff`/`mechanical_power`/`tool_stress`)/위험구간(zone) 플래그별 고장률/Pairplot을 다루는 심화
+   분석입니다 — 특히 위험구간 부분은 `model_3.ipynb`가 채택한 zone 피처 엔지니어링이 모델링 이전
+   EDA 단계에서도 근거가 있었음을 별도로 검증합니다. `EDA1`/`EDA2`는 `README.md`에 정리되어 있으나
+   `EDA3`는 아직 `README.md`에 반영되지 않았습니다(노트북 자체의 마크다운 셀에만 인사이트가 정리돼
+   있음) — README에 추가할 때는 이 노트북의 8절(종합 결론)을 참고하세요.
 2. **탐색 단계 모델링** — 확정 주제(`Machine failure` 이진분류)로 좁혀지기 전, `Type`(품질 등급) 다중분류
    4종 모델 비교(`classifications.ipynb`)와 `Torque` 회귀 4종 모델 비교(`regression.ipynb`)도 진행했습니다.
    두 노트북 모두 **결과까지 낸 뒤 저장소에서 삭제**됐고(위 "파일 이름 변경/삭제 이력" 참고), 결과는
